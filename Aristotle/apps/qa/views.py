@@ -1,16 +1,28 @@
 #!/usr/bin/env python
-from django.http import HttpResponse
+#
+# @name: views.py
+# @create: Aug. 25th, 2014
+# @update: Aug. 27th, 2014
+# @author: hitigon@gmail.com
+# from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login
+from django.views.generic import View
 
 
-def home(request):
-    return render(request, 'qa/index.html')
+class HomeView(View):
+
+    def get(self, request, *args, **kwargs):
+        return render(request, 'qa/index.html')
 
 
-def signin(request):
-    if request.method == 'POST':
+class SignInView(View):
+
+    def get(self, request, *args, **kwargs):
+        return render(request, 'qa/signin.html')
+
+    def post(self, request, *args, **kwargs):
         username = request.POST['username']
         password = request.POST['password']
         user = authenticate(username=username, password=password)
@@ -20,16 +32,13 @@ def signin(request):
         else:
             return redirect('/signin')
 
-    elif request.method == 'GET':
-        return render(request, 'qa/signin.html')
-    else:
-        response = HttpResponse()
-        response.status_code = 405
-        return response
 
+class SignUpView(View):
 
-def signup(request):
-    if request.method == 'POST':
+    def get(self, request, *args, **kwargs):
+        return render(request, 'qa/signup.html')
+
+    def post(self, request, *args, **kwargs):
         username = request.POST['username']
         email = request.POST['email']
         password = request.POST['password']
@@ -37,5 +46,3 @@ def signup(request):
         user = User.objects.create_user(username, email, password)
         user.save()
         return redirect('/signin')
-    elif request.method == 'GET':
-        return render(request, 'qa/signup.html')

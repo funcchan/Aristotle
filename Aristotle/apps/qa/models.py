@@ -1,4 +1,9 @@
 #!/usr/bin/env python
+#
+# @name: models.py
+# @create:
+# @update:
+# @author:
 from django.db import models
 from django.contrib.auth.models import User
 
