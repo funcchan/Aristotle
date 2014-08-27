@@ -6,4 +6,7 @@ admin.autodiscover()
 
 urlpatterns = patterns('',
                        url(r'^admin/', include(admin.site.urls)),
+                       url(r'^$', 'Aristotle.apps.qa.views.home'),
+                       url(r'^signin/', 'Aristotle.apps.qa.views.signin'),
+                       url(r'^signup/', 'Aristotle.apps.qa.views.signup'),
                        )
