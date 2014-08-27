@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -13,7 +14,9 @@ SECRET_KEY = 'sqj$o%q@d6rucj0ylgzef1)olnn1-urr%^9d20=y%b#7*ff*xx'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+
 TEMPLATE_DEBUG = True
+TEMPLATE_DIRS = os.path.join(BASE_DIR, 'templates')
 
 ALLOWED_HOSTS = []
 

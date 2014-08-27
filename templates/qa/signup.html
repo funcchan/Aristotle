@@ -1,0 +1,17 @@
+{% extends "qa/base.html" %}
+
+{% block title %}Sign Up{% endblock %}
+
+{% block content %}
+<form method="POST" action="/signup/">{% csrf_token %}
+    <label>Username:</label>
+    <input type="text" name="username" />
+    <label>Email:</label>
+    <input type="email" name="email" />
+    <label>Password:</label>
+    <input type="password" name="password" />
+    <label>Repeat Password:</label>
+    <input type="password" name="repassword" />
+    <button type="submit">Sign Up</button>
+</form>
+{% endblock %}
