@@ -4,7 +4,6 @@
 # @create: Aug. 25th, 2014
 # @update: Aug. 28th, 2014
 # @author: hitigon@gmail.com
-from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
