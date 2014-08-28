@@ -16,4 +16,5 @@ urlpatterns = patterns(
     url(r'^$', views.HomeView.as_view(), name='home-view'),
     url(r'^signin/', views.SignInView.as_view(), name='signin-view'),
     url(r'^signup/', views.SignUpView.as_view(), name='signup-view'),
+    url(r'^signout/', views.SignOutView.as_view(), name='signout-view'),
 )

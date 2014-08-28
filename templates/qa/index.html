@@ -3,6 +3,10 @@
 {% block title %}Home{% endblock %}
 
 {% block content %}
+{% if not user.is_authenticated %}
 <a href="/signin" title="Sign In">Sign In</a> | 
-<a href="/signup" title="Sign Up">Sign Up</a>
+<a href="/signup" title="Sign Up">Sign Up</a> 
+{% else %}
+<a href="/signout" title="Sign Out">Sign Out</a>
+{% endif %}
 {% endblock %}

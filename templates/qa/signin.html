@@ -3,6 +3,13 @@
 {% block title %}Sign In{% endblock %}
 
 {% block content %}
+{% if messages %}
+<ul>
+    {% for message in messages %}
+        <li>{{ message }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
 <form method="POST" action="/signin/">{% csrf_token %}
     <label>Username:</label>
     <input type="text" name="username" />
