@@ -1,122 +1,79 @@
 #!/usr/bin/env python
-from . import models
-from django.shortcuts import render
-
-def home_page_view(request):
-    # TODO: View for index
-    """
-    1. Check the user session
-        - If login, get the user information
-
-    2. Retrieval contents:
-        - Newest Questions
-            = Number of Votes
-            = Number of Views
-            = Tags
-            = User
-        - Hot Tags
-        - Newest users
-
-    3. Render the page
-
-    :param request:
-    :return:
-    """
-    return render(request, 'home.html')
+#
+# @name: views.py
+# @create: Aug. 25th, 2014
+# @update: Aug. 28th, 2014
+# @author: hitigon@gmail.com
+# from django.http import HttpResponse
+from django.shortcuts import render, redirect
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate, login, logout
+from django.contrib import messages
+from django.views.generic import View
+from errors import InvalidFieldError
 
 
-def question_view(request, question_id):
-    # TODO: View for the question content
-    """
-    1. Search the question with question_id.
-        - If not valid, redirect to 404
+class HomeView(View):
 
-    2. Retrieval contents
-        - Answers,
-        - Users,
-        - Comments,
-        - Appends,
-        - Tags.
-
-    3. Render the page
-
-    :param request:
-    :param question_id:
-    :return:
-    """
-    return render(request, 'question_content.html',
-                  {'question_id': question_id})
+    def get(self, request, *args, **kwargs):
+        return render(request, 'qa/index.html')
 
 
-def ask_question_view(request):
-    # TODO: View for ask question
-    return render(request, 'ask_question.html')
+class SignInView(View):
+
+    def get(self, request, *args, **kwargs):
+        return render(request, 'qa/signin.html')
+
+    def post(self, request, *args, **kwargs):
+        username = request.POST['username']
+        password = request.POST['password']
+        user = authenticate(username=username, password=password)
+        if user:
+            login(request, user)
+            return redirect('/')
+        else:
+            msg = 'Username or password is not correct'
+            messages.error(request, msg)
+            return redirect('/signin')
 
 
-def signup_view(request):
-    # TODO: View for sign up
-    # TODO: Use OAUTH
-    """
-    1. Verify the session.
-        - If already login, redirect to the home page.
+class SignUpView(View):
 
-    2.
-        - If GET method, render the pages.
-        - If POST method, handle the form information
-            = Verify user information.
-                ? Unique and Valid user name
-                ? Unique and Valid Email address
-                ? Valid and Confirmed Pwd
-                ? Other information
-            = If valid, redirect to successful page
-            = Else, flash the alarm information.
+    def get(self, request, *args, **kwargs):
+        return render(request, 'qa/signup.html')
 
-    :param request:
-    :return:
-    """
-    if request.method == 'POST':
-        pass
-
-    return render(request, 'signup.html')
-
-
-def login_view(request):
-    # TODO: View for sign in
-    # TODO: Use OAUTH
-    """
-    1. Verify the session.
-        - If already login, redirect to the home page.
-
-    2.
-        - If GET method, render the pages.
-        - If POST method, handle the form information.
-            = Verify user information. User name and pwd.
-            = If correct, redirect the home page (or successful page).
-            = Else, flash the alarm information.
-
-    :param request:
-    :return:
-    """
-    if request.method == 'POST':
-        pass
-
-    return render(request, 'login.html')
+    def post(self, request, *args, **kwargs):
+        username = request.POST['username']
+        email = request.POST['email']
+        password = request.POST['password']
+        repassword = request.POST['repassword']
+        err_msgs = []
+        if not username:
+            err_msgs.append('Username is required')
+        if not email:
+            err_msgs.append('Email is required')
+        if not password or not repassword:
+            err_msgs.append('Passwords are required')
+        if password != repassword:
+            err_msgs.append('Two passwords are not identical')
+        try:
+            if err_msgs:
+                raise InvalidFieldError(messages=err_msgs)
+            user = User.objects.create_user(username, email, password)
+            user.save()
+            return redirect('/signin')
+        except InvalidFieldError as e:
+            msgs = e.messages
+            for msg in msgs:
+                messages.error(request, msg)
+            return redirect('/signup')
+        except Exception as e:
+            messages.error(request, e.message)
+            return redirect('/signup')
 
 
-def user_info_view(request, user_id):
-    # TODO: View for user info
-    """
-    1. Retrieval the User data by User ID
-        - If no such user. Redirect to non-existing page.
+class SignOutView(View):
 
-    2. Check the current user login status
-        - If it is the page for current user, there should be more links, such as Edit, My Question, Modification, etc.
-        - If it is the page for other users, just show the necessary information.
-
-    3. Render the page
-
-    :param request:
-    :return:
-    """
-    return render(request, 'user_info.html', {'user_id': user_id})
-
+    def get(self, request, *args, **kwargs):
+        logout(request)
+        return redirect('/signin')
