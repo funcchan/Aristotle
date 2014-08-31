@@ -17,6 +17,7 @@ urlpatterns = patterns(
     url(r'^signin/', views.SignInView.as_view(), name='signin-view'),
     url(r'^signup/', views.SignUpView.as_view(), name='signup-view'),
     url(r'^signout/', views.SignOutView.as_view(), name='signout-view'),
-    url(r'^user/(?P<user_id>[a-z0-9]+)', views.UserSettingView.as_view(), name='user-setting-view'),
-    url(r'^question/(?P<question_id>[a-z0-9]+)', views.QuestionView.as_view(), name='question-view')
+    url(r'^user/(?P<user_id>[a-z0-9]+)', views.UserProfileView.as_view(), name='user-setting-view'),
+    url(r'^question/(?P<question_id>[a-z0-9]+)/', views.QuestionView.as_view(), name='question-view'),
+    url(r'^ask/$', views.AskQuestion.as_view(), name='ask-view')
 )

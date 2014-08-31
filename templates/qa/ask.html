@@ -1,0 +1,19 @@
+{% extends "qa/base.html" %}
+
+{% block title %}
+Ask Question
+{% endblock %}
+
+
+{% block content %}
+<form action="/ask/" method="post">
+{% csrf_token %}
+<label for="">Title:</label>
+<input type="text" name="title" id="title"/>
+<label for="">Content:</label>
+<textarea name="content" id="content" cols="30" rows="10"></textarea>
+<input type="submit"/>
+
+</form>
+
+{% endblock %}

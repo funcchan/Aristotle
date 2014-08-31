@@ -4,6 +4,7 @@
 # @create:
 # @update:
 # @author:
+import datetime
 from django.db import models
 from django.contrib.auth.models import User
 
@@ -35,11 +36,16 @@ class Question(models.Model):
     title = models.TextField()
     content = models.TextField()
     author_id = models.ForeignKey(User)
-    up_votes = models.IntegerField()
-    down_votes = models.IntegerField()
-    number_of_views = models.IntegerField()
-    solved = models.BooleanField()
+    up_votes = models.IntegerField(default=0)
+    down_votes = models.IntegerField(default=0)
+    number_of_views = models.IntegerField(default=0)
+    solved = models.BooleanField(default=False)
     created_time = models.DateTimeField()
+
+    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+        if not self.id:
+            self.created_time = datetime.datetime.today()
+        super().save(force_insert, force_update, using, update_fields)
 
 
 class QuestionAppend(models.Model):

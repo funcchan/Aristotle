@@ -5,6 +5,7 @@
 # @update: Aug. 28th, 2014
 # @author: hitigon@gmail.com
 from django.shortcuts import render, redirect
+from .models import Question
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
@@ -62,11 +63,11 @@ class SignUpView(View):
         password = request.POST['password']
         repassword = request.POST['repassword']
         err_msgs = []
-        if not username:  # TODO: Validate the username
+        if not username:
             err_msgs.append('Username is required')
-        if not email:  # TODO: Validate the email
+        if not email:
             err_msgs.append('Email is required')
-        if not password or not repassword:  # TODO: Validate the pwd
+        if not password or not repassword:
             err_msgs.append('Passwords are required')
         if password != repassword:
             err_msgs.append('Two passwords are not identical')
@@ -94,7 +95,8 @@ class SignOutView(View):
 
 # Start by Liangju
 # @ Aug. 28th, 2014
-class UserSettingView(View):
+class UserProfileView(View):
+    template_name = 'qa/user_profile.html'
 
     def get(self, request, *args, **kwargs):
         # TODO: View for user info
@@ -111,11 +113,11 @@ class UserSettingView(View):
         :param request:
         :return:
         """
-        return render(request, 'qa/user_setting.html',
+        return render(request, 'qa/user_profile.html',
                       {'user_id': self.kwargs['user_id']})
 
-class QuestionView(View):
 
+class QuestionView(View):
     def get(self, request, *args, **kwargs):
         # TODO: View for the question content
         """
@@ -137,3 +139,88 @@ class QuestionView(View):
         """
         return render(request, 'qa/question.html',
                       {'question_id': self.kwargs['question_id']})
+
+    def post(self, request, *args, **kwargs):
+        # TODO: Edit, Delete
+        """
+        1. Get POST info.
+        2. Verify
+            - Length
+            - Tag
+            - etc.
+        3. Insert to table
+        4. Redirect to the current question page.
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        pass
+
+
+class AskQuestion(View):
+    def get(self, request, *args, **kwargs):
+        """
+        1. Normal page.
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        return render(request, 'qa/ask.html')
+
+    def post(self, request, *args, **kwargs):
+        """
+        1. Insert into DB
+        2. Redirect to target question Page
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        title = request.POST['title']
+        content = request.POST['content']
+        # TODO: Complete the user_id field
+        # Might need require the Sessions and Cookie
+
+        err_msgs = []
+        if not title:
+            err_msgs.append('No title')
+        if not content:
+            err_msgs.append('No content')
+
+        try:
+            if err_msgs:
+                raise InvalidFieldError(messages=err_msgs)
+            question = Question.objects.create(title=title, content=content)
+            question.save()
+            return redirect('/question/{0}/'.format(question.id))
+        except InvalidFieldError as e:
+            msgs = e.messages
+            for msg in msgs:
+                messages.error(request, msg)
+            return redirect('/ask')
+        except Exception as e:
+            messages.error(request, e.message)
+            return redirect('/ask')
+
+
+
+class AnswerView(View):
+    def post(self, request, *args, **kwargs):
+        # TODO:
+        """
+        1. Get POST info.
+        2. Verify
+            - Target question number
+            - Length
+            - Tag
+            - etc.
+        3. Insert to table
+        4. Redirect to the current question page.
+        :param request:
+        :param args:
+        :param kwargs:
+        :return:
+        """
+        pass
