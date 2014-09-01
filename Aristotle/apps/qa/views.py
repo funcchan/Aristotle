@@ -2,7 +2,7 @@
 #
 # @name: views.py
 # @create: Aug. 25th, 2014
-# @update: Aug. 28th, 2014
+# @update: Sep. 1st, 2014
 # @author: hitigon@gmail.com
 from django.http import Http404
 from django.shortcuts import render, redirect
@@ -18,12 +18,17 @@ from .errors import InvalidFieldError
 
 
 class HomeView(View):
+
     def get(self, request, *args, **kwargs):
+        """
+        """
+        # TODO list order, limits
         questions = Question.objects.order_by('created_time')[:10]
         return render(request, 'qa/index.html', {'questions': questions})
 
 
 class SignInView(View):
+
     def get(self, request, *args, **kwargs):
         # TODO: Check the session
         """
@@ -50,6 +55,7 @@ class SignInView(View):
 
 
 class SignUpView(View):
+
     def get(self, request, *args, **kwargs):
         # TODO: Check the session
         """
@@ -95,6 +101,7 @@ class SignUpView(View):
 
 
 class SignOutView(View):
+
     def get(self, request, *args, **kwargs):
         logout(request)
         return redirect('/signin')
@@ -125,6 +132,7 @@ class UserProfileView(View):
 
 
 class QuestionView(View):
+
     def get(self, request, *args, **kwargs):
         # TODO: View for the question content
         """
@@ -176,6 +184,7 @@ class QuestionView(View):
 
 
 class AskQuestion(View):
+
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
         """
@@ -214,7 +223,6 @@ class AskQuestion(View):
                 raise InvalidFieldError(messages=err_msgs)
             question = Question.objects.create(title=title, content=content,
                                                author=user)
-            # print(question)
             question.save()
             return redirect('/question/{0}/'.format(question.id))
         except InvalidFieldError as e:
@@ -229,6 +237,8 @@ class AskQuestion(View):
 
 
 class AnswerView(View):
+
+    @method_decorator(login_required)
     def post(self, request, *args, **kwargs):
         # TODO:
         """

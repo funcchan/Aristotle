@@ -15,11 +15,15 @@ Ask Question
 {% endif %}
 <form action="/ask/" method="post">
 {% csrf_token %}
-<label for="">Title:</label>
-<input type="text" name="title" id="title"/>
-<label for="">Content:</label>
-<textarea name="content" id="content" cols="30" rows="10"></textarea>
-<input type="submit"/>
+    <p>
+        <label for="">Title:</label>
+        <input type="text" name="title" id="title"/>
+    </p>
+    <p>
+        <label for="">Content:</label>
+        <textarea name="content" id="content" cols="30" rows="10"></textarea>
+    </p>
+    <p><button type="submit">Submit</button></p>
 
 </form>
 

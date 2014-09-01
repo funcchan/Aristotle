@@ -2,7 +2,7 @@
 #
 # @name: models.py
 # @create:
-# @update:
+# @update: Sep. 1st, 2014
 # @author:
 import datetime
 from django.db import models
@@ -33,8 +33,8 @@ from django.contrib.auth.models import User
 
 
 class Question(models.Model):
-    title = models.TextField()
-    content = models.TextField()
+    title = models.TextField(null=False)
+    content = models.TextField(null=False)
     author = models.ForeignKey(User)
     up_votes = models.IntegerField(default=0)
     down_votes = models.IntegerField(default=0)
@@ -42,23 +42,22 @@ class Question(models.Model):
     solved = models.BooleanField(default=False)
     created_time = models.DateTimeField()
 
-    def save(self, force_insert=False, force_update=False, using=None,
-             update_fields=None):
+    def save(self, *args, **kwargs):
         if not self.id:
             self.created_time = datetime.datetime.today()
-        super().save(force_insert, force_update, using, update_fields)
+        return super(Question, self).save(*args, **kwargs)
 
 
 class QuestionAppend(models.Model):
     question = models.ForeignKey(Question)
-    content = models.TextField()
+    content = models.TextField(null=False)
     created_time = models.DateTimeField()
 
 
 class QuestionComment(models.Model):
     question = models.ForeignKey(Question)
     user = models.ForeignKey(User)
-    content = models.TextField()
+    content = models.TextField(null=False)
     created_time = models.DateTimeField()
 
 
@@ -79,23 +78,22 @@ class Answer(models.Model):
     accepted = models.BooleanField(default=False)
     created_time = models.DateTimeField()
 
-    def save(self, force_insert=False, force_update=False, using=None,
-             update_fields=None):
+    def save(self, *args, **kwargs):
         if not self.id:
             self.created_time = datetime.datetime.today()
-        super().save(force_insert, force_update, using, update_fields)
+        return super(Answer, self).save(*args, **kwargs)
 
 
 class AnswerAppend(models.Model):
     answer = models.ForeignKey(Answer)
-    content = models.TextField()
+    content = models.TextField(null=False)
     created_time = models.DateTimeField()
 
 
 class AnswerComment(models.Model):
     answer = models.ForeignKey(Answer)
     user = models.ForeignKey(User)
-    content = models.TextField()
+    content = models.TextField(null=False)
     created_time = models.DateTimeField()
 
 

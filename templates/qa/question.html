@@ -1,7 +1,7 @@
 {% extends "qa/base.html" %}
 
 {% block title %}
-
+{{ question.title }}
 {% endblock %}
 
 {% block content %}
@@ -16,6 +16,15 @@
     <p><span>{{ question.author }}</span> | <span>{{ question.created_time }}</span></p>
     <p>{{ question.content }}</p>
     <h3>Answer</h3>
+    <ul>
+    {% for answer in answers %}
+        <li>
+            <p>{{ answer.content }}</p>
+            <p><span>{{ answer.author }}</span> | <span>{{ answer.created_time }}</span></p>
+        </li>
+    {% endfor %}
+
+    </ul>
     <div>
         <form action="/answer/{{ question.id }}/" method="POST">
             {% csrf_token %}
@@ -25,12 +34,4 @@
             </p>
         </form>
     </div>
-    <ul>
-    {% for answer in answers %}
-        <li>
-            <p>{{ answer.content }}</p>
-        </li>
-    {% endfor %}
-
-    </ul>
 {% endblock %}

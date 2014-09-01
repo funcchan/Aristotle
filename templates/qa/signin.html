@@ -10,11 +10,16 @@
     {% endfor %}
 </ul>
 {% endif %}
-<form method="POST" action="/signin/">{% csrf_token %}
-    <label>Username:</label>
-    <input type="text" name="username" />
-    <label>Password:</label>
-    <input type="password" name="password" />
-    <button type="submit">Sign In</button>
+<form method="POST" action="/signin/">
+{% csrf_token %}
+    <p>
+        <label>Username:</label>
+        <input type="text" name="username" />
+    </p>
+    <p>
+        <label>Password:</label>
+        <input type="password" name="password" />
+    </p>
+    <p><button type="submit">Sign In</button></p>
 </form>
 {% endblock %}
