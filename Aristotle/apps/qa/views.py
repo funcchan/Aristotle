@@ -4,18 +4,23 @@
 # @create: Aug. 25th, 2014
 # @update: Aug. 28th, 2014
 # @author: hitigon@gmail.com
+from django.http import Http404
 from django.shortcuts import render, redirect
-from .models import Question
+from django.utils.decorators import method_decorator
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.views.generic import View
+from django.contrib.auth.decorators import login_required
+
+from .models import Question, Answer
 from .errors import InvalidFieldError
 
 
 class HomeView(View):
     def get(self, request, *args, **kwargs):
-        return render(request, 'qa/index.html')
+        questions = Question.objects.order_by('created_time')[:10]
+        return render(request, 'qa/index.html', {'questions': questions})
 
 
 class SignInView(View):
@@ -77,13 +82,15 @@ class SignUpView(View):
             user = User.objects.create_user(username, email, password)
             user.save()
             return redirect('/signin')
+
         except InvalidFieldError as e:
             msgs = e.messages
             for msg in msgs:
                 messages.error(request, msg)
             return redirect('/signup')
         except Exception as e:
-            messages.error(request, e.message)
+            message = 'Error'
+            messages.error(request, message)
             return redirect('/signup')
 
 
@@ -137,8 +144,18 @@ class QuestionView(View):
         :param question_id:
         :return:
         """
-        return render(request, 'qa/question.html',
-                      {'question_id': self.kwargs['question_id']})
+        # TODO answer order
+        qid = self.kwargs['question_id']
+        try:
+            question = Question.objects.get(id=qid)
+            answers = Answer.objects.order_by('created_time').filter(
+                question=question)
+            # print(answers)
+            return render(request, 'qa/question.html',
+                          {'question': question, 'answers': answers})
+        except Exception as e:
+            print(e)
+            raise Http404
 
     def post(self, request, *args, **kwargs):
         # TODO: Edit, Delete
@@ -159,6 +176,7 @@ class QuestionView(View):
 
 
 class AskQuestion(View):
+    @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
         """
         1. Normal page.
@@ -169,6 +187,7 @@ class AskQuestion(View):
         """
         return render(request, 'qa/ask.html')
 
+    @method_decorator(login_required)
     def post(self, request, *args, **kwargs):
         """
         1. Insert into DB
@@ -180,6 +199,7 @@ class AskQuestion(View):
         """
         title = request.POST['title']
         content = request.POST['content']
+        user = request.user
         # TODO: Complete the user_id field
         # Might need require the Sessions and Cookie
 
@@ -192,7 +212,9 @@ class AskQuestion(View):
         try:
             if err_msgs:
                 raise InvalidFieldError(messages=err_msgs)
-            question = Question.objects.create(title=title, content=content)
+            question = Question.objects.create(title=title, content=content,
+                                               author=user)
+            # print(question)
             question.save()
             return redirect('/question/{0}/'.format(question.id))
         except InvalidFieldError as e:
@@ -201,9 +223,9 @@ class AskQuestion(View):
                 messages.error(request, msg)
             return redirect('/ask')
         except Exception as e:
-            messages.error(request, e.message)
+            message = 'Error'
+            messages.error(request, message)
             return redirect('/ask')
-
 
 
 class AnswerView(View):
@@ -223,4 +245,28 @@ class AnswerView(View):
         :param kwargs:
         :return:
         """
-        pass
+        user = request.user
+        qid = self.kwargs['question_id']
+        content = request.POST['answer_content']
+        err_msgs = []
+        if not content:
+            err_msgs.append('No content')
+
+        try:
+            if err_msgs:
+                raise InvalidFieldError(messages=err_msgs)
+            question = Question.objects.get(id=int(qid))
+            answer = Answer.objects.create(content=content,
+                                           question=question, author=user)
+            answer.save()
+            print(answer)
+            return redirect('/question/{0}/'.format(qid))
+        except InvalidFieldError as e:
+            msgs = e.messages
+            for msg in msgs:
+                messages.error(request, msg)
+            return redirect('/ask')
+        except Exception:
+            message = 'Error'
+            messages.error(request, message)
+            return redirect('/question/{0}/'.format(qid))

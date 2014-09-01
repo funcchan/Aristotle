@@ -6,6 +6,13 @@ Ask Question
 
 
 {% block content %}
+{% if messages %}
+<ul>
+    {% for message in messages %}
+        <li>{{ message }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
 <form action="/ask/" method="post">
 {% csrf_token %}
 <label for="">Title:</label>
@@ -17,3 +24,5 @@ Ask Question
 </form>
 
 {% endblock %}
+
+

@@ -9,7 +9,15 @@
 {% else %}
 <a href="/signout" title="Sign Out">Sign Out</a>
 {% endif %}
-
 <a href="/ask/">Ask Question</a>
 
-{% endblock %}
+<ul>
+{% for question in questions %}
+    <li>
+        <h3><a href="./question/{{ question.id }}" title="G
+        o to {{ question.title }}">{{ question.title }}</a></h3>
+        <p>{{ question.content }}</p>
+    </li>
+{% endfor %}
+</ul>
+{% endblock content %}

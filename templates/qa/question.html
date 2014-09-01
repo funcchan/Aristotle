@@ -1,9 +1,36 @@
 {% extends "qa/base.html" %}
 
 {% block title %}
-    {{ question_id }}
+
 {% endblock %}
 
 {% block content %}
-    <h1>Page for question: {{ question_id }}</h1>
+{% if messages %}
+    <ul>
+        {% for message in messages %}
+            <li>{{ message }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
+    <h2>{{ question.title }}</h2>
+    <p><span>{{ question.author }}</span> | <span>{{ question.created_time }}</span></p>
+    <p>{{ question.content }}</p>
+    <h3>Answer</h3>
+    <div>
+        <form action="/answer/{{ question.id }}/" method="POST">
+            {% csrf_token %}
+            <p><textarea name="answer_content" id="" cols="30" rows="10"></textarea></p>
+            <p>
+                <button>Submit</button>
+            </p>
+        </form>
+    </div>
+    <ul>
+    {% for answer in answers %}
+        <li>
+            <p>{{ answer.content }}</p>
+        </li>
+    {% endfor %}
+
+    </ul>
 {% endblock %}
