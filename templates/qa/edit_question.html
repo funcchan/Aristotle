@@ -1,0 +1,32 @@
+{% extends "qa/base.html" %}
+
+{% block title %}
+Edit {{ question.title }}
+{% endblock %}
+
+
+{% block content %}
+{% if messages %}
+<ul>
+    {% for message in messages %}
+        <li>{{ message }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+<form action="/question/{{ question.id }}/edit/" method="post">
+{% csrf_token %}
+    <p>
+        <label for="">Title:</label>
+        <input type="text" name="title" id="title" value="{{ question.title }}"/>
+    </p>
+    <p>
+        <label for="">Content:</label>
+        <textarea name="content" id="content" cols="30" rows="10">{{ question.content }}</textarea>
+    </p>
+    <p><button type="submit">Submit</button></p>
+
+</form>
+
+{% endblock %}
+
+

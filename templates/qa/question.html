@@ -13,7 +13,12 @@
     </ul>
 {% endif %}
     <h2>{{ question.title }}</h2>
-    <p><span>{{ question.author }}</span> | <span>{{ question.created_time }}</span></p>
+    <p>
+        <span>{{ question.author }}</span> | 
+        <span>{{ question.created_time }}</span> | 
+        <span><a href="./edit/">Edit</a></span> | 
+        <span>Delete</span>
+    </p>
     <p>{{ question.content }}</p>
     <h3>Answer</h3>
     <ul>

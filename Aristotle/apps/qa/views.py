@@ -2,7 +2,7 @@
 #
 # @name: views.py
 # @create: Aug. 25th, 2014
-# @update: Sep. 1st, 2014
+# @update: Sep. 2nd, 2014
 # @author: hitigon@gmail.com
 from django.http import Http404
 from django.shortcuts import render, redirect
@@ -153,34 +153,61 @@ class QuestionView(View):
         :return:
         """
         # TODO answer order
-        qid = self.kwargs['question_id']
         try:
-            question = Question.objects.get(id=qid)
+            qid = kwargs['question_id']
+            user = request.user
+            question = Question.objects.get(id=int(qid))
+            if 'action' in kwargs and kwargs['action'] == 'edit':
+                if user.is_authenticated() and question.author == user:
+                    return render(request, 'qa/edit_question.html',
+                                  {'question': question})
+                else:
+                    raise Exception('Unauthorized')
             answers = Answer.objects.order_by('created_time').filter(
                 question=question)
-            # print(answers)
             return render(request, 'qa/question.html',
                           {'question': question, 'answers': answers})
         except Exception as e:
             print(e)
             raise Http404
 
+    @method_decorator(login_required)
     def post(self, request, *args, **kwargs):
-        # TODO: Edit, Delete
-        """
-        1. Get POST info.
-        2. Verify
-            - Length
-            - Tag
-            - etc.
-        3. Insert to table
-        4. Redirect to the current question page.
-        :param request:
-        :param args:
-        :param kwargs:
-        :return:
-        """
-        pass
+        user = request.user
+        qid = kwargs['question_id']
+        action = kwargs['action']
+
+        err_msgs = []
+
+        if action == 'edit':
+            title = request.POST['title']
+            content = request.POST['content']
+            if not title:
+                err_msgs.append('No title')
+            if not content:
+                err_msgs.append('No content')
+
+            try:
+                if err_msgs:
+                    raise InvalidFieldError(messages=err_msgs)
+
+                question = Question.objects.filter(id=int(qid))
+                if user != question[0].author:
+                    raise Exception('Unauthorized')
+                question.update(title=title, content=content)
+                return redirect('/question/{0}/'.format(qid))
+            except InvalidFieldError as e:
+                msgs = e.messages
+                for msg in msgs:
+                    messages.error(request, msg)
+                return redirect('/question/{0}/edit/'.format(qid))
+            except Exception as e:
+                print(e)
+                message = 'Error'
+                messages.error(request, message)
+                return redirect('/question/{0}/edit/'.format(qid))
+        elif action == 'delete':
+            pass
 
 
 class AskQuestion(View):

@@ -2,7 +2,7 @@
 #
 # @name: models.py
 # @create:
-# @update: Sep. 1st, 2014
+# @update: Sep. 2nd, 2014
 # @author:
 import datetime
 from django.db import models
@@ -53,12 +53,22 @@ class QuestionAppend(models.Model):
     content = models.TextField(null=False)
     created_time = models.DateTimeField()
 
+    def save(self, *args, **kwargs):
+        if not self.id:
+            self.created_time = datetime.datetime.today()
+        return super(Question, self).save(*args, **kwargs)
+
 
 class QuestionComment(models.Model):
     question = models.ForeignKey(Question)
     user = models.ForeignKey(User)
     content = models.TextField(null=False)
     created_time = models.DateTimeField()
+
+    def save(self, *args, **kwargs):
+        if not self.id:
+            self.created_time = datetime.datetime.today()
+        return super(Question, self).save(*args, **kwargs)
 
 
 class QuestionVote(models.Model):
