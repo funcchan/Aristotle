@@ -16,10 +16,17 @@
     <p>
         <span>{{ question.author }}</span> | 
         <span>{{ question.created_time }}</span> | 
-        <span><a href="./edit/">Edit</a></span> | 
-        <span>Delete</span>
+        <span><a href="./edit/">Edit</a></span>
+        <span>
+        </span>
     </p>
     <p>{{ question.content }}</p>
+    <p>
+        <form action="/question/{{ question.id }}/delete/" method="POST">
+        {% csrf_token %}
+            <button type="submit">Delete</button>
+        </form>
+    </p>
     <h3>Answer</h3>
     <ul>
     {% for answer in answers %}
@@ -35,7 +42,7 @@
             {% csrf_token %}
             <p><textarea name="answer_content" id="" cols="30" rows="10"></textarea></p>
             <p>
-                <button>Submit</button>
+                <button type="submit">Submit</button>
             </p>
         </form>
     </div>

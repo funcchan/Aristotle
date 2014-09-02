@@ -178,6 +178,7 @@ class QuestionView(View):
         action = kwargs['action']
 
         err_msgs = []
+        error_url = '/'
 
         if action == 'edit':
             title = request.POST['title']
@@ -186,28 +187,32 @@ class QuestionView(View):
                 err_msgs.append('No title')
             if not content:
                 err_msgs.append('No content')
+            error_url = '/question/{0}/edit/'.format(qid)
+        elif action == 'delete':
+            error_url = '/question/{0}/'.format(qid)
+        try:
+            if err_msgs:
+                raise InvalidFieldError(messages=err_msgs)
 
-            try:
-                if err_msgs:
-                    raise InvalidFieldError(messages=err_msgs)
-
-                question = Question.objects.filter(id=int(qid))
-                if user != question[0].author:
-                    raise Exception('Unauthorized')
+            question = Question.objects.filter(id=int(qid))
+            if user != question[0].author:
+                raise Exception('Unauthorized')
+            if action == 'edit':
                 question.update(title=title, content=content)
                 return redirect('/question/{0}/'.format(qid))
-            except InvalidFieldError as e:
-                msgs = e.messages
-                for msg in msgs:
-                    messages.error(request, msg)
-                return redirect('/question/{0}/edit/'.format(qid))
-            except Exception as e:
-                print(e)
-                message = 'Error'
-                messages.error(request, message)
-                return redirect('/question/{0}/edit/'.format(qid))
-        elif action == 'delete':
-            pass
+            elif action == 'delete':
+                question.delete()
+                return redirect('/')
+        except InvalidFieldError as e:
+            msgs = e.messages
+            for msg in msgs:
+                messages.error(request, msg)
+            return redirect(error_url)
+        except Exception as e:
+            print(e)
+            message = 'Error'
+            messages.error(request, message)
+            return redirect(error_url)
 
 
 class AskQuestion(View):
