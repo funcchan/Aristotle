@@ -41,6 +41,7 @@ class Question(models.Model):
     number_of_views = models.IntegerField(default=0)
     solved = models.BooleanField(default=False)
     created_time = models.DateTimeField()
+    # updated_time = models.DateTimeField()
 
     def save(self, *args, **kwargs):
         if not self.id:
@@ -56,7 +57,7 @@ class QuestionAppend(models.Model):
     def save(self, *args, **kwargs):
         if not self.id:
             self.created_time = datetime.datetime.today()
-        return super(Question, self).save(*args, **kwargs)
+        return super(QuestionAppend, self).save(*args, **kwargs)
 
 
 class QuestionComment(models.Model):
@@ -68,7 +69,7 @@ class QuestionComment(models.Model):
     def save(self, *args, **kwargs):
         if not self.id:
             self.created_time = datetime.datetime.today()
-        return super(Question, self).save(*args, **kwargs)
+        return super(QuestionComment, self).save(*args, **kwargs)
 
 
 class QuestionVote(models.Model):
@@ -77,6 +78,11 @@ class QuestionVote(models.Model):
     vote_type = models.BooleanField()
     reason = models.TextField()
     created_time = models.DateTimeField()
+
+    def save(self, *args, **kwargs):
+        if not self.id:
+            self.created_time = datetime.datetime.today()
+        return super(QuestionVote, self).save(*args, **kwargs)
 
 
 class Answer(models.Model):
@@ -99,12 +105,22 @@ class AnswerAppend(models.Model):
     content = models.TextField(null=False)
     created_time = models.DateTimeField()
 
+    def save(self, *args, **kwargs):
+        if not self.id:
+            self.created_time = datetime.datetime.today()
+        return super(AnswerAppend, self).save(*args, **kwargs)
+
 
 class AnswerComment(models.Model):
     answer = models.ForeignKey(Answer)
     user = models.ForeignKey(User)
     content = models.TextField(null=False)
     created_time = models.DateTimeField()
+
+    def save(self, *args, **kwargs):
+        if not self.id:
+            self.created_time = datetime.datetime.today()
+        return super(AnswerComment, self).save(*args, **kwargs)
 
 
 class AnswerVote(models.Model):
@@ -114,7 +130,12 @@ class AnswerVote(models.Model):
     reason = models.TextField()
     created_time = models.DateTimeField()
 
+    def save(self, *args, **kwargs):
+        if not self.id:
+            self.created_time = datetime.datetime.today()
+        return super(AnswerVote, self).save(*args, **kwargs)
 
-# class Tag(models.Model):
-#     name = models.TextField(unique=True)
-#     question_id = models.ForeignKey(Question)
+
+class Tag(models.Model):
+    name = models.TextField(unique=True)
+    question = models.ForeignKey(Question)
