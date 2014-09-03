@@ -27,6 +27,22 @@
             <button type="submit">Delete</button>
         </form>
     </p>
+    <p>
+        <ul>
+            {% for comment in question_comments %}
+            <li>
+                {{ comment.content }} | {{ comment.user }}
+            </li>
+            {% endfor %}
+        </ul>
+    </p>
+    <p>
+        <form action="/question/{{ question.id }}/comment/" method="POST">
+        {% csrf_token %}
+            <textarea name="question_comment" id="" cols="30" rows="10"></textarea>
+            <button type="submit">Submit</button>
+        </form>
+    </p>
     <h3>Answer</h3>
     <ul>
     {% for answer in answers %}

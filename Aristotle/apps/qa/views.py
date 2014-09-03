@@ -2,7 +2,7 @@
 #
 # @name: views.py
 # @create: Aug. 25th, 2014
-# @update: Sep. 2nd, 2014
+# @update: Sep. 3rd, 2014
 # @author: hitigon@gmail.com
 from django.http import Http404
 from django.shortcuts import render, redirect
@@ -13,7 +13,7 @@ from django.contrib import messages
 from django.views.generic import View
 from django.contrib.auth.decorators import login_required
 
-from .models import Question, Answer
+from .models import Question, Answer, QuestionComment
 from .errors import InvalidFieldError
 
 
@@ -163,10 +163,16 @@ class QuestionView(View):
                                   {'question': question})
                 else:
                     raise Exception('Unauthorized')
+            question_comments = QuestionComment.objects.order_by(
+                'created_time').filter(question=question)
             answers = Answer.objects.order_by('created_time').filter(
                 question=question)
-            return render(request, 'qa/question.html',
-                          {'question': question, 'answers': answers})
+            data = {
+                'question': question,
+                'answers': answers,
+                'question_comments': question_comments,
+            }
+            return render(request, 'qa/question.html', data)
         except Exception as e:
             print(e)
             raise Http404
@@ -190,19 +196,33 @@ class QuestionView(View):
             error_url = '/question/{0}/edit/'.format(qid)
         elif action == 'delete':
             error_url = '/question/{0}/'.format(qid)
+        elif action == 'comment':
+            question_comment = request.POST['question_comment']
+            if not question_comment:
+                err_msgs.append('No comment content')
+            error_url = '/question/{0}/'.format(qid)
         try:
             if err_msgs:
                 raise InvalidFieldError(messages=err_msgs)
 
             question = Question.objects.filter(id=int(qid))
-            if user != question[0].author:
-                raise Exception('Unauthorized')
+
             if action == 'edit':
+                if user != question[0].author:
+                    raise Exception('Unauthorized')
                 question.update(title=title, content=content)
                 return redirect('/question/{0}/'.format(qid))
             elif action == 'delete':
+                if user != question[0].author:
+                    raise Exception('Unauthorized')
                 question.delete()
                 return redirect('/')
+            elif action == 'comment':
+                comment = QuestionComment.objects.create(question=question[0],
+                                                         user=user,
+                                                         content=question_comment)
+                comment.save()
+                return redirect('/question/{0}/'.format(qid))
         except InvalidFieldError as e:
             msgs = e.messages
             for msg in msgs:

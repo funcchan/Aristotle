@@ -2,7 +2,7 @@
 #
 # @name: models.py
 # @create:
-# @update: Sep. 2nd, 2014
+# @update: Sep. 3rd, 2014
 # @author:
 import datetime
 from django.db import models
@@ -75,7 +75,7 @@ class QuestionComment(models.Model):
 class QuestionVote(models.Model):
     question = models.ForeignKey(Question)
     user = models.ForeignKey(User)
-    vote_type = models.BooleanField()
+    vote_type = models.BooleanField(default=False)
     reason = models.TextField()
     created_time = models.DateTimeField()
 
@@ -126,7 +126,7 @@ class AnswerComment(models.Model):
 class AnswerVote(models.Model):
     answer = models.ForeignKey(Answer)
     user = models.ForeignKey(User)
-    vote_type = models.BooleanField()
+    vote_type = models.BooleanField(default=False)
     reason = models.TextField()
     created_time = models.DateTimeField()
 
