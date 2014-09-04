@@ -17,7 +17,7 @@ from django.db.models import Prefetch
 from .models import Question, Answer
 from .models import QuestionComment, QuestionAppend
 from .models import QuestionVote
-from .models import AnswerComment
+from .models import AnswerComment, AnswerVote
 from .errors import InvalidFieldError
 
 
@@ -154,29 +154,44 @@ class QuestionView(View):
         # TODO answer order
         try:
             qid = kwargs['question_id']
-            question = Question.objects.get(id=int(qid))
-            question_comments = QuestionComment.objects.order_by(
-                'created_time').filter(question=question)
-            question_appends = QuestionAppend.objects.order_by(
-                'created_time').filter(question=question)
-            question_upvotes = QuestionVote.objects.order_by(
-                'created_time').filter(question=question, vote_type=True)
-            question_downvotes = QuestionVote.objects.order_by(
-                'created_time').filter(question=question, vote_type=False)
+            question = Question.objects.filter(id=int(qid))
+            qcomment_qs = QuestionComment.objects.order_by(
+                'created_time')
+            qappend_qs = QuestionAppend.objects.order_by(
+                'created_time')
+            qvoteup_qs = QuestionVote.objects.order_by(
+                'created_time').filter(vote_type=True)
+            qvotedown_qs = QuestionVote.objects.order_by(
+                'created_time').filter(vote_type=False)
+            question = question.prefetch_related(
+                Prefetch('questioncomment_set',
+                         queryset=qcomment_qs, to_attr='comments'),
+                Prefetch('questionappend_set',
+                         queryset=qappend_qs, to_attr='appends'),
+                Prefetch('questionvote_set',
+                         queryset=qvoteup_qs, to_attr='upvotes'),
+                Prefetch('questionvote_set',
+                         queryset=qvotedown_qs, to_attr='downvotes'))
+
             # TODO Limiting the number of comments
+            acomment_qs = AnswerComment.objects.order_by(
+                'created_time').all()
+            avoteup_qs = AnswerVote.objects.order_by(
+                'created_time').filter(vote_type=True)
+            avotedown_qs = AnswerVote.objects.order_by(
+                'created_time').filter(vote_type=False)
             answers = Answer.objects.order_by('created_time').filter(
-                question=question).prefetch_related(
+                question=question[0])
+            answers = answers.prefetch_related(
                 Prefetch('answercomment_set',
-                         queryset=AnswerComment.objects.order_by(
-                             'created_time').all(),
-                         to_attr="comments"))
+                         queryset=acomment_qs, to_attr='comments'),
+                Prefetch('answervote_set',
+                         queryset=avoteup_qs, to_attr='upvotes'),
+                Prefetch('answervote_set',
+                         queryset=avotedown_qs, to_attr='downvotes'))
             data = {
-                'question': question,
+                'question': question[0],
                 'answers': answers,
-                'question_appends': question_appends,
-                'question_comments': question_comments,
-                'question_upvotes': question_upvotes,
-                'question_downvotes': question_downvotes,
             }
             return render(request, 'qa/question.html', data)
         except Exception as e:
@@ -381,6 +396,7 @@ class AnswerActionView(View):
         /answer/<:id>/upvote/
         /answer/<:id>/downvote/
         """
+        redirect_uri = request.META['HTTP_REFERER']
         try:
             aid = kwargs['answer_id']
             action = kwargs['action']
@@ -389,17 +405,23 @@ class AnswerActionView(View):
             if action == 'edit':
                 pass
             elif action == 'comment':
-                return self._comment(request, answer)
+                self._comment(request, answer)
+            elif action == 'delete':
+                self._delete(request, answer)
+            elif action == 'upvote':
+                self._vote(request, answer)
+            elif action == 'downvote':
+                self._vote(request, answer, False)
         except InvalidFieldError as e:
             msgs = e.messages
             for msg in msgs:
                 messages.error(request, msg)
-            return redirect('/question/ask/')
         except Exception as e:
             print(e)
             message = 'Error'
             messages.error(request, message)
-            return redirect('/question/ask/')
+        finally:
+            return redirect(redirect_uri)
 
     def _edit(self, request, answer):
         pass
@@ -418,13 +440,25 @@ class AnswerActionView(View):
                                                user=request.user,
                                                content=content)
         comment.save()
-        return redirect('/question/{0}/'.format(answer[0].question.id))
 
     def _append(self, request, answer):
         pass
 
     def _delete(self, request, answer):
-        pass
+        err_msgs = []
+        if request.user != answer[0].author:
+            raise Exception('Unauthorized action')
+        if err_msgs:
+            raise InvalidFieldError(messages=err_msgs)
+        answer.delete()
 
-    def _vote(self, request, answer):
-        pass
+    def _vote(self, request, answer, up=True):
+        user = request.user
+        voted = AnswerVote.objects.filter(answer=answer[0], user=user)
+        if voted:
+            if voted[0].vote_type != up:
+                voted.delete()
+        else:
+            vote = AnswerVote.objects.create(
+                answer=answer[0], user=user, vote_type=up)
+            vote.save()

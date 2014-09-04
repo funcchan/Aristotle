@@ -24,11 +24,11 @@
     <p>
         <form action="/question/{{ question.id }}/upvote/" method="POST">
             {% csrf_token %}
-            <button type="submit">↑ {{ question_upvotes.count }}</button>
+            <button type="submit">↑ {{ question.upvotes | length }}</button>
         </form>
         <form action="/question/{{ question.id }}/downvote/" method="POST">
             {% csrf_token %}
-            <button type="submit">↓ {{ question_downvotes.count }}</button>
+            <button type="submit">↓ {{ question.downvotes | length }}</button>
         </form>
         <form action="/question/{{ question.id }}/delete/" method="POST">
         {% csrf_token %}
@@ -38,7 +38,7 @@
     <h3>Append</h3>
     <p>
         <ul>
-            {% for append in question_appends %}
+            {% for append in question.appends %}
             <li>
                 {{ append.content }} | {{ append.created_time }}
             </li>
@@ -55,7 +55,7 @@
     <h3>Comments</h3>
     <p>
         <ul>
-            {% for comment in question_comments %}
+            {% for comment in question.comments %}
             <li>
                 {{ comment.content }} | {{ comment.user }}
             </li>
@@ -76,6 +76,20 @@
             <p>{{ answer.content }}</p>
             <p>
                 <span>{{ answer.author }}</span> | <span>{{ answer.created_time }}</span>
+            </p>
+            <p>
+                <form action="/answer/{{ answer.id }}/upvote/" method="POST">
+                    {% csrf_token %}
+                    <button type="submit">↑ {{ answer.upvotes | length }}</button>
+                </form>
+                <form action="/answer/{{ answer.id }}/downvote/" method="POST">
+                    {% csrf_token %}
+                    <button type="submit">↓ {{ answer.downvotes | length }}</button>
+                </form>
+                <form action="/answer/{{ answer.id }}/delete/" method="POST">
+                {% csrf_token %}
+                    <button type="submit">Delete</button>
+                </form>
             </p>
             <ul >
                 {% for comment in answer.comments %}
