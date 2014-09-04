@@ -20,7 +20,6 @@ from .errors import InvalidFieldError
 
 
 class HomeView(View):
-
     def get(self, request, *args, **kwargs):
         """
         """
@@ -30,7 +29,6 @@ class HomeView(View):
 
 
 class SignInView(View):
-
     def get(self, request, *args, **kwargs):
         # TODO: Check the session
         """
@@ -57,7 +55,6 @@ class SignInView(View):
 
 
 class SignUpView(View):
-
     def get(self, request, *args, **kwargs):
         # TODO: Check the session
         """
@@ -103,7 +100,6 @@ class SignUpView(View):
 
 
 class SignOutView(View):
-
     def get(self, request, *args, **kwargs):
         logout(request)
         return redirect('/signin')
@@ -134,7 +130,6 @@ class UserProfileView(View):
 
 
 class QuestionView(View):
-
     def get(self, request, *args, **kwargs):
         """
         1. Find the question with question_id.
@@ -178,7 +173,6 @@ class QuestionView(View):
 
 
 class QuestionActionView(View):
-
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
 
@@ -242,19 +236,6 @@ class QuestionActionView(View):
             messages.error(request, message)
             return redirect(error_url)
 
-    def _answer(self, request, qid, question):
-        content = request.POST['answer_content']
-        err_msgs = []
-        if not content:
-            err_msgs.append('No content')
-        if err_msgs:
-            raise InvalidFieldError(messages=err_msgs)
-        answer = Answer.objects.create(content=content,
-                                       question=question[0],
-                                       author=request.user)
-        answer.save()
-        return redirect('/question/{0}/'.format(qid))
-
     def _edit(self, request, qid, question):
         title = request.POST['title']
         content = request.POST['content']
@@ -303,7 +284,7 @@ class QuestionActionView(View):
             raise Exception('Unauthorized action')
         if err_msgs:
             raise InvalidFieldError(messages=err_msgs)
-        question.delete()
+        question.delete()  # TODO: Enable the cascading delete?
         return redirect('/')
 
     def _vote(self, request, qid, question, up=True):
@@ -318,9 +299,21 @@ class QuestionActionView(View):
             vote.save()
         return redirect('/question/{0}/'.format(qid))
 
+    def _answer(self, request, qid, question):
+        content = request.POST['answer_content']
+        err_msgs = []
+        if not content:
+            err_msgs.append('No content')
+        if err_msgs:
+            raise InvalidFieldError(messages=err_msgs)
+        answer = Answer.objects.create(content=content,
+                                       question=question[0],
+                                       author=request.user)
+        answer.save()
+        return redirect('/question/{0}/'.format(qid))
+
 
 class AskQuestionView(View):
-
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
         """

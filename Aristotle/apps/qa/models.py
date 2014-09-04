@@ -4,9 +4,9 @@
 # @create:
 # @update: Sep. 4th, 2014
 # @author:
-import datetime
 from django.db import models
 from django.contrib.auth.models import User
+from django.utils import timezone
 
 # class User(models.Model):
 #     username = models.TextField(max_length=16)
@@ -43,7 +43,7 @@ class Question(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.id:
-            self.created_time = datetime.datetime.today()
+            self.created_time = timezone.now()
         return super(Question, self).save(*args, **kwargs)
 
 
@@ -54,7 +54,7 @@ class QuestionAppend(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.id:
-            self.created_time = datetime.datetime.today()
+            self.created_time = timezone.now()
         return super(QuestionAppend, self).save(*args, **kwargs)
 
 
@@ -66,7 +66,7 @@ class QuestionComment(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.id:
-            self.created_time = datetime.datetime.today()
+            self.created_time = timezone.now()
         return super(QuestionComment, self).save(*args, **kwargs)
 
 
@@ -79,7 +79,7 @@ class QuestionVote(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.id:
-            self.created_time = datetime.datetime.today()
+            self.created_time = timezone.now()
         return super(QuestionVote, self).save(*args, **kwargs)
 
 
@@ -94,7 +94,7 @@ class Answer(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.id:
-            self.created_time = datetime.datetime.today()
+            self.created_time = timezone.now()
         return super(Answer, self).save(*args, **kwargs)
 
 
@@ -105,7 +105,7 @@ class AnswerAppend(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.id:
-            self.created_time = datetime.datetime.today()
+            self.created_time = timezone.now()
         return super(AnswerAppend, self).save(*args, **kwargs)
 
 
@@ -117,7 +117,7 @@ class AnswerComment(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.id:
-            self.created_time = datetime.datetime.today()
+            self.created_time = timezone.now()
         return super(AnswerComment, self).save(*args, **kwargs)
 
 
@@ -130,7 +130,7 @@ class AnswerVote(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.id:
-            self.created_time = datetime.datetime.today()
+            self.created_time = timezone.now()
         return super(AnswerVote, self).save(*args, **kwargs)
 
 

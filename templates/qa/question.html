@@ -24,11 +24,11 @@
     <p>
         <form action="/question/{{ question.id }}/upvote/" method="POST">
             {% csrf_token %}
-            <button type="submit">+Vote {{ question_upvotes.count }}</button>
+            <button type="submit">↑ {{ question_upvotes.count }}</button>
         </form>
         <form action="/question/{{ question.id }}/downvote/" method="POST">
             {% csrf_token %}
-            <button type="submit">-Vote {{ question_downvotes.count }}</button>
+            <button type="submit">↓ {{ question_downvotes.count }}</button>
         </form>
         <form action="/question/{{ question.id }}/delete/" method="POST">
         {% csrf_token %}
