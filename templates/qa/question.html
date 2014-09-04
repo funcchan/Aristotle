@@ -13,6 +13,25 @@
     </ul>
 {% endif %}
     <h2>{{ question.title }}</h2>
+
+    <ul>
+        <li>
+            <form action="/question/{{ question.id }}/upvote/" method="POST">
+                {% csrf_token %}
+                <input type="submit" value="↑"/>
+                <span>{{ question.up_votes }}</span>
+            </form>
+        </li>
+
+        <li>
+            <form action="/question/{{ question.id }}/downvote/" method="POST">
+                {% csrf_token %}
+                <input type="submit" value="↓"/>
+                <span>{{ question.down_votes }}</span>
+            </form>
+        </li>
+    </ul>
+
     <p>
         <span>{{ question.author }}</span> | 
         <span>{{ question.created_time }}</span> | 
@@ -61,6 +80,9 @@
             <button type="submit">Submit</button>
         </form>
     </p>
+
+    <hr/>
+
     <h3>Answer</h3>
     <ul>
     {% for answer in answers %}

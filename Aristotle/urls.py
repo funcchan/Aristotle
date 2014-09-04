@@ -22,7 +22,7 @@ urlpatterns = patterns(
     url(r'^question/(?P<question_id>[0-9]+)/$', views.QuestionView.as_view(),
         name='question-view'),
     url(r'^question/ask/$', views.AskQuestionView.as_view(), name='ask-question'),
-    url(r'^question/(?P<question_id>[0-9]+)/(?P<action>answer|edit|append|delete|comment)/$',
+    url(r'^question/(?P<question_id>[0-9]+)/(?P<action>answer|edit|append|delete|comment|upvote|downvote)/$',
         views.QuestionActionView.as_view(),
         name='question-action'),
 )

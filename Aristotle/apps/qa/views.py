@@ -19,7 +19,6 @@ from .errors import InvalidFieldError
 
 
 class HomeView(View):
-
     def get(self, request, *args, **kwargs):
         """
         """
@@ -29,7 +28,6 @@ class HomeView(View):
 
 
 class SignInView(View):
-
     def get(self, request, *args, **kwargs):
         # TODO: Check the session
         """
@@ -56,7 +54,6 @@ class SignInView(View):
 
 
 class SignUpView(View):
-
     def get(self, request, *args, **kwargs):
         # TODO: Check the session
         """
@@ -102,7 +99,6 @@ class SignUpView(View):
 
 
 class SignOutView(View):
-
     def get(self, request, *args, **kwargs):
         logout(request)
         return redirect('/signin')
@@ -133,7 +129,6 @@ class UserProfileView(View):
 
 
 class QuestionView(View):
-
     def get(self, request, *args, **kwargs):
         """
         1. Find the question with question_id.
@@ -171,7 +166,6 @@ class QuestionView(View):
 
 
 class QuestionActionView(View):
-
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
 
@@ -219,6 +213,10 @@ class QuestionActionView(View):
                 return self._append(request, qid, question)
             elif action == 'delete':
                 return self._delete(request, qid, question)
+            elif action == 'upvote':
+                return self._upvote(request, qid, question)
+            elif action == 'downvote':
+                return self._downvote(request, qid, question)
 
         except InvalidFieldError as e:
             msgs = e.messages
@@ -230,19 +228,6 @@ class QuestionActionView(View):
             message = 'Error'
             messages.error(request, message)
             return redirect(error_url)
-
-    def _answer(self, request, qid, question):
-        content = request.POST['answer_content']
-        err_msgs = []
-        if not content:
-            err_msgs.append('No content')
-        if err_msgs:
-            raise InvalidFieldError(messages=err_msgs)
-        answer = Answer.objects.create(content=content,
-                                       question=question[0],
-                                       author=request.user)
-        answer.save()
-        return redirect('/question/{0}/'.format(qid))
 
     def _edit(self, request, qid, question):
         title = request.POST['title']
@@ -292,12 +277,44 @@ class QuestionActionView(View):
             raise Exception('Unauthorized action')
         if err_msgs:
             raise InvalidFieldError(messages=err_msgs)
-        question.delete()
+        question.delete()  # TODO: Enable the cascading delete?
         return redirect('/')
+
+    def _upvote(self, request, qid, question):
+        # TODO: One user could ONLY vote one question for ONCE
+        # if request.user == question[0].author:  # Don't vote yourself
+        # raise Exception('Unauthorized action')
+        up_votes = question[0].up_votes
+        question.update(up_votes=up_votes + 1)
+        return redirect('/question/{0}/'.format(qid))
+
+    def _downvote(self, request, qid, question):
+        # TODO: One user could ONLY vote one question for ONCE
+        # if request.user == question[0].author:  # Don't vote yourself
+        # raise Exception('Unauthorized action')
+        down_votes = question[0].down_votes
+        question.update(down_votes=down_votes + 1)
+        return redirect('/question/{0}/'.format(qid))
+
+    # TODO: Should _answer and _vote_answer be in another View?
+    def _answer(self, request, qid, question):
+        content = request.POST['answer_content']
+        err_msgs = []
+        if not content:
+            err_msgs.append('No content')
+        if err_msgs:
+            raise InvalidFieldError(messages=err_msgs)
+        answer = Answer.objects.create(content=content,
+                                       question=question[0],
+                                       author=request.user)
+        answer.save()
+        return redirect('/question/{0}/'.format(qid))
+
+    def _vote_answer(self, request, aid, answer):
+        pass
 
 
 class AskQuestionView(View):
-
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
         """
