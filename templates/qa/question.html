@@ -72,7 +72,7 @@
 
     </ul>
     <div>
-        <form action="/answer/{{ question.id }}/" method="POST">
+        <form action="/question/{{ question.id }}/answer/" method="POST">
             {% csrf_token %}
             <p><textarea name="answer_content" id="" cols="30" rows="5"></textarea></p>
             <p>

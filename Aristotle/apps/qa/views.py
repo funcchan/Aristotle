@@ -2,7 +2,7 @@
 #
 # @name: views.py
 # @create: Aug. 25th, 2014
-# @update: Sep. 3rd, 2014
+# @update: Sep. 4rd, 2014
 # @author: hitigon@gmail.com
 from django.http import Http404
 from django.shortcuts import render, redirect
@@ -135,9 +135,8 @@ class UserProfileView(View):
 class QuestionView(View):
 
     def get(self, request, *args, **kwargs):
-        # TODO: View for the question content
         """
-        1. Search the question with question_id.
+        1. Find the question with question_id.
             - If not valid, redirect to 404
 
         2. Retrieval contents
@@ -148,22 +147,11 @@ class QuestionView(View):
             - Tags.
 
         3. Render the page
-
-        :param request:
-        :param question_id:
-        :return:
         """
         # TODO answer order
         try:
             qid = kwargs['question_id']
-            user = request.user
             question = Question.objects.get(id=int(qid))
-            if 'action' in kwargs and kwargs['action'] == 'edit':
-                if user.is_authenticated() and question.author == user:
-                    return render(request, 'qa/edit_question.html',
-                                  {'question': question})
-                else:
-                    raise Exception('Unauthorized')
             question_comments = QuestionComment.objects.order_by(
                 'created_time').filter(question=question)
             question_appends = QuestionAppend.objects.order_by(
@@ -181,64 +169,57 @@ class QuestionView(View):
             print(e)
             raise Http404
 
+
+class QuestionActionView(View):
+
+    @method_decorator(login_required)
+    def get(self, request, *args, **kwargs):
+
+        try:
+            user = request.user
+            qid = kwargs['question_id']
+            action = kwargs['action']
+            question = Question.objects.get(id=int(qid))
+
+            if action != 'edit':
+                raise Exception('Unsupported action')
+            if question.author != user:
+                raise Exception('Unauthorized action')
+            return render(request, 'qa/edit_question.html',
+                          {'question': question})
+        except Exception:
+            # error handling is not done
+            raise Http404
+
     @method_decorator(login_required)
     def post(self, request, *args, **kwargs):
-        user = request.user
-        qid = kwargs['question_id']
-        action = kwargs['action']
-
-        err_msgs = []
-        error_url = '/'
-
-        if action == 'edit':
-            title = request.POST['title']
-            content = request.POST['content']
-            if not title:
-                err_msgs.append('No title')
-            if not content:
-                err_msgs.append('No content')
-            error_url = '/question/{0}/edit/'.format(qid)
-        elif action == 'append':
-            question_append = request.POST['question_append']
-            if not question_append:
-                err_msgs.append('No append content')
-            error_url = '/question/{0}/'.format(qid)
-        elif action == 'delete':
-            error_url = '/question/{0}/'.format(qid)
-        elif action == 'comment':
-            question_comment = request.POST['question_comment']
-            if not question_comment:
-                err_msgs.append('No comment content')
-            error_url = '/question/{0}/'.format(qid)
+        """
+        /question/<:id>/answer/
+        /question/<:id>/edit/
+        /question/<:id>/comment/
+        /question/<:id>/append/
+        /question/<:id>/delete/
+        /question/<:id>/upvote/
+        /question/<:id>/downvote/
+        """
         try:
-            if err_msgs:
-                raise InvalidFieldError(messages=err_msgs)
+            qid = kwargs['question_id']
+            action = kwargs['action']
+            error_url = '/question/{0}/'.format(qid)
 
             question = Question.objects.filter(id=int(qid))
 
-            if action == 'edit':
-                if user != question[0].author:
-                    raise Exception('Unauthorized')
-                question.update(title=title, content=content)
-                return redirect('/question/{0}/'.format(qid))
-            elif action == 'append':
-                if user != question[0].author:
-                    raise Exception('Unauthorized')
-                append = QuestionAppend.objects.create(question=question[0],
-                                                       content=question_append)
-                append.save()
-                return redirect('/question/{0}/'.format(qid))
-            elif action == 'delete':
-                if user != question[0].author:
-                    raise Exception('Unauthorized')
-                question.delete()
-                return redirect('/')
+            if action == 'answer':
+                return self._answer(request, qid, question)
+            elif action == 'edit':
+                return self._edit(request, qid, question)
             elif action == 'comment':
-                comment = QuestionComment.objects.create(question=question[0],
-                                                         user=user,
-                                                         content=question_comment)
-                comment.save()
-                return redirect('/question/{0}/'.format(qid))
+                return self._comment(request, qid, question)
+            elif action == 'append':
+                return self._append(request, qid, question)
+            elif action == 'delete':
+                return self._delete(request, qid, question)
+
         except InvalidFieldError as e:
             msgs = e.messages
             for msg in msgs:
@@ -250,43 +231,95 @@ class QuestionView(View):
             messages.error(request, message)
             return redirect(error_url)
 
+    def _answer(self, request, qid, question):
+        content = request.POST['answer_content']
+        err_msgs = []
+        if not content:
+            err_msgs.append('No content')
+        if err_msgs:
+            raise InvalidFieldError(messages=err_msgs)
+        answer = Answer.objects.create(content=content,
+                                       question=question[0],
+                                       author=request.user)
+        answer.save()
+        return redirect('/question/{0}/'.format(qid))
 
-class AskQuestion(View):
-
-    @method_decorator(login_required)
-    def get(self, request, *args, **kwargs):
-        """
-        1. Normal page.
-        :param request:
-        :param args:
-        :param kwargs:
-        :return:
-        """
-        return render(request, 'qa/ask.html')
-
-    @method_decorator(login_required)
-    def post(self, request, *args, **kwargs):
-        """
-        1. Insert into DB
-        2. Redirect to target question Page
-        :param request:
-        :param args:
-        :param kwargs:
-        :return:
-        """
+    def _edit(self, request, qid, question):
         title = request.POST['title']
         content = request.POST['content']
-        user = request.user
-        # TODO: Complete the user_id field
-        # Might need require the Sessions and Cookie
-
         err_msgs = []
         if not title:
             err_msgs.append('No title')
         if not content:
             err_msgs.append('No content')
+        if err_msgs:
+            raise InvalidFieldError(messages=err_msgs)
+        if request.user != question[0].author:
+            raise Exception('Unauthorized action')
+        question.update(title=title, content=content)
+        return redirect('/question/{0}/'.format(qid))
+
+    def _comment(self, request, qid, question):
+        content = request.POST['question_comment']
+        err_msgs = []
+        if not content:
+            err_msgs.append('No content')
+        if err_msgs:
+            raise InvalidFieldError(messages=err_msgs)
+        comment = QuestionComment.objects.create(question=question[0],
+                                                 user=request.user,
+                                                 content=content)
+        comment.save()
+        return redirect('/question/{0}/'.format(qid))
+
+    def _append(self, request, qid, question):
+        content = request.POST['question_append']
+        err_msgs = []
+        if not content:
+            err_msgs.append('No content')
+        if request.user != question[0].author:
+            raise Exception('Unauthorized action')
+        if err_msgs:
+            raise InvalidFieldError(messages=err_msgs)
+        append = QuestionAppend.objects.create(question=question[0],
+                                               content=content)
+        append.save()
+        return redirect('/question/{0}/'.format(qid))
+
+    def _delete(self, request, qid, question):
+        err_msgs = []
+        if request.user != question[0].author:
+            raise Exception('Unauthorized action')
+        if err_msgs:
+            raise InvalidFieldError(messages=err_msgs)
+        question.delete()
+        return redirect('/')
+
+
+class AskQuestionView(View):
+
+    @method_decorator(login_required)
+    def get(self, request, *args, **kwargs):
+        """
+        Render ask_question page.
+        """
+        return render(request, 'qa/ask_question.html')
+
+    @method_decorator(login_required)
+    def post(self, request, *args, **kwargs):
+        """
+        Create a new question.
+        """
 
         try:
+            title = request.POST['title']
+            content = request.POST['content']
+            user = request.user
+            err_msgs = []
+            if not title:
+                err_msgs.append('No title')
+            if not content:
+                err_msgs.append('No content')
             if err_msgs:
                 raise InvalidFieldError(messages=err_msgs)
             question = Question.objects.create(title=title, content=content,
@@ -297,54 +330,8 @@ class AskQuestion(View):
             msgs = e.messages
             for msg in msgs:
                 messages.error(request, msg)
-            return redirect('/ask')
+            return redirect('/question/ask/')
         except Exception as e:
             message = 'Error'
             messages.error(request, message)
-            return redirect('/ask')
-
-
-class AnswerView(View):
-
-    @method_decorator(login_required)
-    def post(self, request, *args, **kwargs):
-        # TODO:
-        """
-        1. Get POST info.
-        2. Verify
-            - Target question number
-            - Length
-            - Tag
-            - etc.
-        3. Insert to table
-        4. Redirect to the current question page.
-        :param request:
-        :param args:
-        :param kwargs:
-        :return:
-        """
-        user = request.user
-        qid = self.kwargs['question_id']
-        content = request.POST['answer_content']
-        err_msgs = []
-        if not content:
-            err_msgs.append('No content')
-
-        try:
-            if err_msgs:
-                raise InvalidFieldError(messages=err_msgs)
-            question = Question.objects.get(id=int(qid))
-            answer = Answer.objects.create(content=content,
-                                           question=question, author=user)
-            answer.save()
-            # print(answer)
-            return redirect('/question/{0}/'.format(qid))
-        except InvalidFieldError as e:
-            msgs = e.messages
-            for msg in msgs:
-                messages.error(request, msg)
-            return redirect('/ask')
-        except Exception:
-            message = 'Error'
-            messages.error(request, message)
-            return redirect('/question/{0}/'.format(qid))
+            return redirect('/question/ask/')
