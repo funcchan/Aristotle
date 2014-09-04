@@ -18,6 +18,7 @@ from .models import Question, Answer
 from .models import QuestionComment, QuestionAppend
 from .models import QuestionVote
 from .models import AnswerComment, AnswerVote
+from .models import AnswerAppend
 from .errors import InvalidFieldError
 
 
@@ -175,7 +176,8 @@ class QuestionView(View):
 
             # TODO Limiting the number of comments
             acomment_qs = AnswerComment.objects.order_by(
-                'created_time').all()
+                'created_time')
+            aappend_qs = AnswerAppend.objects.order_by('created_time')
             avoteup_qs = AnswerVote.objects.order_by(
                 'created_time').filter(vote_type=True)
             avotedown_qs = AnswerVote.objects.order_by(
@@ -188,7 +190,9 @@ class QuestionView(View):
                 Prefetch('answervote_set',
                          queryset=avoteup_qs, to_attr='upvotes'),
                 Prefetch('answervote_set',
-                         queryset=avotedown_qs, to_attr='downvotes'))
+                         queryset=avotedown_qs, to_attr='downvotes'),
+                Prefetch('answerappend_set',
+                         queryset=aappend_qs, to_attr='appends'))
             data = {
                 'question': question[0],
                 'answers': answers,
@@ -231,38 +235,40 @@ class QuestionActionView(View):
         /question/<:id>/upvote/
         /question/<:id>/downvote/
         """
+        err_redirect_uri = request.META['HTTP_REFERER']
         try:
             qid = kwargs['question_id']
             action = kwargs['action']
-            error_url = '/question/{0}/'.format(qid)
+            redirect_uri = '/question/{0}/'.format(qid)
 
             question = Question.objects.filter(id=int(qid))
 
             if action == 'answer':
-                return self._answer(request, qid, question)
+                self._answer(request, qid, question)
             elif action == 'edit':
-                return self._edit(request, qid, question)
+                self._edit(request, qid, question)
             elif action == 'comment':
-                return self._comment(request, qid, question)
+                self._comment(request, qid, question)
             elif action == 'append':
-                return self._append(request, qid, question)
+                self._append(request, qid, question)
             elif action == 'delete':
-                return self._delete(request, qid, question)
+                redirect_uri = '/'
+                self._delete(request, qid, question)
             elif action == 'upvote':
-                return self._vote(request, qid, question)
+                self._vote(request, qid, question)
             elif action == 'downvote':
-                return self._vote(request, qid, question, False)
-
+                self._vote(request, qid, question, False)
+            return redirect(redirect_uri)
         except InvalidFieldError as e:
             msgs = e.messages
             for msg in msgs:
                 messages.error(request, msg)
-            return redirect(error_url)
+            return redirect(err_redirect_uri)
         except Exception as e:
             print(e)
             message = 'Error'
             messages.error(request, message)
-            return redirect(error_url)
+            return redirect(err_redirect_uri)
 
     def _edit(self, request, qid, question):
         title = request.POST['title']
@@ -277,7 +283,6 @@ class QuestionActionView(View):
         if request.user != question[0].author:
             raise Exception('Unauthorized action')
         question.update(title=title, content=content)
-        return redirect('/question/{0}/'.format(qid))
 
     def _comment(self, request, qid, question):
         content = request.POST['question_comment']
@@ -290,7 +295,6 @@ class QuestionActionView(View):
                                                  user=request.user,
                                                  content=content)
         comment.save()
-        return redirect('/question/{0}/'.format(qid))
 
     def _append(self, request, qid, question):
         content = request.POST['question_append']
@@ -304,13 +308,11 @@ class QuestionActionView(View):
         append = QuestionAppend.objects.create(question=question[0],
                                                content=content)
         append.save()
-        return redirect('/question/{0}/'.format(qid))
 
     def _delete(self, request, qid, question):
         if request.user != question[0].author:
             raise Exception('Unauthorized action')
         question.delete()
-        return redirect('/')
 
     def _vote(self, request, qid, question, up=True):
         user = request.user
@@ -322,7 +324,6 @@ class QuestionActionView(View):
             vote = QuestionVote.objects.create(
                 question=question[0], user=user, vote_type=up)
             vote.save()
-        return redirect('/question/{0}/'.format(qid))
 
     def _answer(self, request, qid, question):
         content = request.POST['answer_content']
@@ -335,7 +336,6 @@ class QuestionActionView(View):
                                        question=question[0],
                                        author=request.user)
         answer.save()
-        return redirect('/question/{0}/'.format(qid))
 
 
 class AskQuestionView(View):
@@ -383,6 +383,25 @@ class AskQuestionView(View):
 class AnswerActionView(View):
 
     @method_decorator(login_required)
+    def get(self, request, *args, **kwargs):
+
+        try:
+            user = request.user
+            aid = kwargs['answer_id']
+            action = kwargs['action']
+            answer = Answer.objects.get(id=int(aid))
+
+            if action != 'edit':
+                raise Exception('Unsupported action')
+            if answer.author != user:
+                raise Exception('Unauthorized action')
+            return render(request, 'qa/edit_answer.html',
+                          {'answer': answer})
+        except Exception:
+            # error handling is not done
+            raise Http404
+
+    @method_decorator(login_required)
     def post(self, request, *args, **kwargs):
         """
         /answer/<:id>/accept/
@@ -393,14 +412,16 @@ class AnswerActionView(View):
         /answer/<:id>/upvote/
         /answer/<:id>/downvote/
         """
-        redirect_uri = request.META['HTTP_REFERER']
+        err_redirect_uri = request.META['HTTP_REFERER']
         try:
             aid = kwargs['answer_id']
             action = kwargs['action']
             answer = Answer.objects.filter(id=int(aid))
-
+            redirect_uri = '/question/{0}/'.format(answer[0].question.id)
             if action == 'edit':
-                pass
+                self._edit(request, answer)
+            elif action == 'append':
+                self._append(request, answer)
             elif action == 'comment':
                 self._comment(request, answer)
             elif action == 'delete':
@@ -411,19 +432,28 @@ class AnswerActionView(View):
                 self._vote(request, answer)
             elif action == 'downvote':
                 self._vote(request, answer, False)
+            return redirect(redirect_uri)
         except InvalidFieldError as e:
             msgs = e.messages
             for msg in msgs:
                 messages.error(request, msg)
+            return redirect(err_redirect_uri)
         except Exception as e:
             print(e)
             message = 'Error'
             messages.error(request, message)
-        finally:
-            return redirect(redirect_uri)
+            return redirect(err_redirect_uri)
 
     def _edit(self, request, answer):
-        pass
+        content = request.POST['content']
+        err_msgs = []
+        if not content:
+            err_msgs.append('No content')
+        if err_msgs:
+            raise InvalidFieldError(messages=err_msgs)
+        if request.user != answer[0].author:
+            raise Exception('Unauthorized action')
+        answer.update(content=content)
 
     def _accept(self, request, answer):
         question = answer[0].question
@@ -455,7 +485,17 @@ class AnswerActionView(View):
         comment.save()
 
     def _append(self, request, answer):
-        pass
+        content = request.POST['answer_append']
+        err_msgs = []
+        if not content:
+            err_msgs.append('No content')
+        if request.user != answer[0].author:
+            raise Exception('Unauthorized action')
+        if err_msgs:
+            raise InvalidFieldError(messages=err_msgs)
+        append = AnswerAppend.objects.create(answer=answer[0],
+                                             content=content)
+        append.save()
 
     def _delete(self, request, answer):
         if request.user != answer[0].author:
