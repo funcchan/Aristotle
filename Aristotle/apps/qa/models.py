@@ -135,5 +135,5 @@ class AnswerVote(models.Model):
 
 
 class Tag(models.Model):
-    name = models.TextField(unique=True)
+    name = models.TextField()
     question = models.ForeignKey(Question)

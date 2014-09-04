@@ -14,12 +14,14 @@ from django.views.generic import View
 from django.contrib.auth.decorators import login_required
 from django.db.models import Prefetch
 
-from .models import Question, Answer
-from .models import QuestionComment, QuestionAppend
-from .models import QuestionVote
-from .models import AnswerComment, AnswerVote
-from .models import AnswerAppend
-from .errors import InvalidFieldError
+from models import Question, Answer
+from models import QuestionComment, QuestionAppend
+from models import QuestionVote
+from models import AnswerComment, AnswerVote
+from models import AnswerAppend
+from models import Tag
+from errors import InvalidFieldError
+from utils import parse_listed_strs
 
 
 class HomeView(View):
@@ -164,6 +166,7 @@ class QuestionView(View):
                 'created_time').filter(vote_type=True)
             qvotedown_qs = QuestionVote.objects.order_by(
                 'created_time').filter(vote_type=False)
+            qtags_qs = Tag.objects.all()
             question = question.prefetch_related(
                 Prefetch('questioncomment_set',
                          queryset=qcomment_qs, to_attr='comments'),
@@ -172,7 +175,8 @@ class QuestionView(View):
                 Prefetch('questionvote_set',
                          queryset=qvoteup_qs, to_attr='upvotes'),
                 Prefetch('questionvote_set',
-                         queryset=qvotedown_qs, to_attr='downvotes'))
+                         queryset=qvotedown_qs, to_attr='downvotes'),
+                Prefetch('tag_set', queryset=qtags_qs, to_attr='tags'))
 
             # TODO Limiting the number of comments
             acomment_qs = AnswerComment.objects.order_by(
@@ -212,14 +216,16 @@ class QuestionActionView(View):
             user = request.user
             qid = kwargs['question_id']
             action = kwargs['action']
-            question = Question.objects.get(id=int(qid))
-
+            question = Question.objects.filter(id=int(qid))
+            qtags_qs = Tag.objects.all()
+            question = question.prefetch_related(
+                Prefetch('tag_set', queryset=qtags_qs, to_attr='tags'))
             if action != 'edit':
                 raise Exception('Unsupported action')
-            if question.author != user:
+            if question[0].author != user:
                 raise Exception('Unauthorized action')
             return render(request, 'qa/edit_question.html',
-                          {'question': question})
+                          {'question': question[0]})
         except Exception:
             # error handling is not done
             raise Http404
@@ -244,20 +250,20 @@ class QuestionActionView(View):
             question = Question.objects.filter(id=int(qid))
 
             if action == 'answer':
-                self._answer(request, qid, question)
+                self._answer(request, question)
             elif action == 'edit':
-                self._edit(request, qid, question)
+                self._edit(request, question)
             elif action == 'comment':
-                self._comment(request, qid, question)
+                self._comment(request, question)
             elif action == 'append':
-                self._append(request, qid, question)
+                self._append(request, question)
             elif action == 'delete':
                 redirect_uri = '/'
-                self._delete(request, qid, question)
+                self._delete(request, question)
             elif action == 'upvote':
-                self._vote(request, qid, question)
+                self._vote(request, question)
             elif action == 'downvote':
-                self._vote(request, qid, question, False)
+                self._vote(request, question, False)
             return redirect(redirect_uri)
         except InvalidFieldError as e:
             msgs = e.messages
@@ -270,9 +276,10 @@ class QuestionActionView(View):
             messages.error(request, message)
             return redirect(err_redirect_uri)
 
-    def _edit(self, request, qid, question):
+    def _edit(self, request, question):
         title = request.POST['title']
         content = request.POST['content']
+        tags = request.POST['tags']
         err_msgs = []
         if not title:
             err_msgs.append('No title')
@@ -283,8 +290,19 @@ class QuestionActionView(View):
         if request.user != question[0].author:
             raise Exception('Unauthorized action')
         question.update(title=title, content=content)
+        if tags:
+            tags_list = parse_listed_strs(tags)
+            stored_tags = set(
+                question[0].tag_set.values_list('name', flat=True))
+            inter = tags_list & stored_tags
+            to_del = stored_tags - inter
+            to_add = tags_list - inter
+            for name in to_del:
+                Tag.objects.filter(name=name, question=question[0]).delete()
+            for name in to_add:
+                Tag.objects.create(name=name, question=question[0]).save()
 
-    def _comment(self, request, qid, question):
+    def _comment(self, request, question):
         content = request.POST['question_comment']
         err_msgs = []
         if not content:
@@ -296,7 +314,7 @@ class QuestionActionView(View):
                                                  content=content)
         comment.save()
 
-    def _append(self, request, qid, question):
+    def _append(self, request, question):
         content = request.POST['question_append']
         err_msgs = []
         if not content:
@@ -309,12 +327,12 @@ class QuestionActionView(View):
                                                content=content)
         append.save()
 
-    def _delete(self, request, qid, question):
+    def _delete(self, request, question):
         if request.user != question[0].author:
             raise Exception('Unauthorized action')
         question.delete()
 
-    def _vote(self, request, qid, question, up=True):
+    def _vote(self, request, question, up=True):
         user = request.user
         voted = QuestionVote.objects.filter(question=question[0], user=user)
         if voted:
@@ -325,7 +343,7 @@ class QuestionActionView(View):
                 question=question[0], user=user, vote_type=up)
             vote.save()
 
-    def _answer(self, request, qid, question):
+    def _answer(self, request, question):
         content = request.POST['answer_content']
         err_msgs = []
         if not content:
@@ -356,6 +374,7 @@ class AskQuestionView(View):
         try:
             title = request.POST['title']
             content = request.POST['content']
+            tags = request.POST['tags']
             user = request.user
             err_msgs = []
             if not title:
@@ -364,9 +383,14 @@ class AskQuestionView(View):
                 err_msgs.append('No content')
             if err_msgs:
                 raise InvalidFieldError(messages=err_msgs)
-            question = Question.objects.create(title=title, content=content,
-                                               author=user)
+            question = Question.objects.create(
+                title=title, content=content, author=user)
             question.save()
+            if tags:
+                tags_list = parse_listed_strs(tags)
+                for name in tags_list:
+                    tag = Tag.objects.create(name=name, question=question)
+                    tag.save()
             return redirect('/question/{0}/'.format(question.id))
         except InvalidFieldError as e:
             msgs = e.messages

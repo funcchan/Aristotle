@@ -38,6 +38,11 @@
             <button type="submit">Delete</button>
         </form>
     </p>
+    <p>
+        {% for tag in question.tags %}
+            <a href="">{{ tag.name }}</a>, 
+        {% endfor %}
+    </p>
     <h3>Append</h3>
     <p>
         <ul>
