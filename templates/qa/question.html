@@ -78,6 +78,14 @@
                 <span>{{ answer.author }}</span> | <span>{{ answer.created_time }}</span>
             </p>
             <p>
+                {% if answer.accepted %}
+                    <span>Accepted</span>
+                {% else %}
+                    <form action="/answer/{{ answer.id }}/accept/" method="POST">
+                    {% csrf_token %}
+                        <button type="submit">Accept</button>
+                    </form>
+                {% endif %}
                 <form action="/answer/{{ answer.id }}/upvote/" method="POST">
                     {% csrf_token %}
                     <button type="submit">↑ {{ answer.upvotes | length }}</button>
@@ -86,6 +94,7 @@
                     {% csrf_token %}
                     <button type="submit">↓ {{ answer.downvotes | length }}</button>
                 </form>
+
                 <form action="/answer/{{ answer.id }}/delete/" method="POST">
                 {% csrf_token %}
                     <button type="submit">Delete</button>

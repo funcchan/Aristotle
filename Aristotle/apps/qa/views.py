@@ -307,11 +307,8 @@ class QuestionActionView(View):
         return redirect('/question/{0}/'.format(qid))
 
     def _delete(self, request, qid, question):
-        err_msgs = []
         if request.user != question[0].author:
             raise Exception('Unauthorized action')
-        if err_msgs:
-            raise InvalidFieldError(messages=err_msgs)
         question.delete()
         return redirect('/')
 
@@ -408,6 +405,8 @@ class AnswerActionView(View):
                 self._comment(request, answer)
             elif action == 'delete':
                 self._delete(request, answer)
+            elif action == 'accept':
+                self._accept(request, answer)
             elif action == 'upvote':
                 self._vote(request, answer)
             elif action == 'downvote':
@@ -427,7 +426,21 @@ class AnswerActionView(View):
         pass
 
     def _accept(self, request, answer):
-        pass
+        question = answer[0].question
+        if request.user != question.author:
+            raise Exception('Unauthorized action')
+        # user cannot revoke or change this action
+        # it is not a flexiable design
+        # question.solved might need a one-to-one relationship
+        # between question and answer
+        # but, this current design makes the calculation of credits
+        # much easier, since in this case we do not have to track
+        # the credit changes for each answer and user
+        if question.solved or answer[0].accepted:
+            raise Exception('Unsupported action')
+        answer.update(accepted=True)
+        question.solved = True
+        question.save()
 
     def _comment(self, request, answer):
         content = request.POST['answer_comment']
@@ -445,11 +458,12 @@ class AnswerActionView(View):
         pass
 
     def _delete(self, request, answer):
-        err_msgs = []
         if request.user != answer[0].author:
             raise Exception('Unauthorized action')
-        if err_msgs:
-            raise InvalidFieldError(messages=err_msgs)
+        question = answer[0].question
+        if question.solved and answer[0].accepted:
+            question.solved = False
+            question.save()
         answer.delete()
 
     def _vote(self, request, answer, up=True):
