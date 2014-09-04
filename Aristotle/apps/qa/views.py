@@ -13,7 +13,8 @@ from django.contrib import messages
 from django.views.generic import View
 from django.contrib.auth.decorators import login_required
 
-from .models import Question, Answer, QuestionComment
+from .models import Question, Answer
+from .models import QuestionComment, QuestionAppend
 from .errors import InvalidFieldError
 
 
@@ -165,11 +166,14 @@ class QuestionView(View):
                     raise Exception('Unauthorized')
             question_comments = QuestionComment.objects.order_by(
                 'created_time').filter(question=question)
+            question_appends = QuestionAppend.objects.order_by(
+                'created_time').filter(question=question)
             answers = Answer.objects.order_by('created_time').filter(
                 question=question)
             data = {
                 'question': question,
                 'answers': answers,
+                'question_appends': question_appends,
                 'question_comments': question_comments,
             }
             return render(request, 'qa/question.html', data)
@@ -194,6 +198,11 @@ class QuestionView(View):
             if not content:
                 err_msgs.append('No content')
             error_url = '/question/{0}/edit/'.format(qid)
+        elif action == 'append':
+            question_append = request.POST['question_append']
+            if not question_append:
+                err_msgs.append('No append content')
+            error_url = '/question/{0}/'.format(qid)
         elif action == 'delete':
             error_url = '/question/{0}/'.format(qid)
         elif action == 'comment':
@@ -211,6 +220,13 @@ class QuestionView(View):
                 if user != question[0].author:
                     raise Exception('Unauthorized')
                 question.update(title=title, content=content)
+                return redirect('/question/{0}/'.format(qid))
+            elif action == 'append':
+                if user != question[0].author:
+                    raise Exception('Unauthorized')
+                append = QuestionAppend.objects.create(question=question[0],
+                                                       content=question_append)
+                append.save()
                 return redirect('/question/{0}/'.format(qid))
             elif action == 'delete':
                 if user != question[0].author:
@@ -321,7 +337,7 @@ class AnswerView(View):
             answer = Answer.objects.create(content=content,
                                            question=question, author=user)
             answer.save()
-            print(answer)
+            # print(answer)
             return redirect('/question/{0}/'.format(qid))
         except InvalidFieldError as e:
             msgs = e.messages
