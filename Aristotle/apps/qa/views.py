@@ -12,14 +12,17 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.views.generic import View
 from django.contrib.auth.decorators import login_required
+from django.db.models import Prefetch
 
 from .models import Question, Answer
 from .models import QuestionComment, QuestionAppend
 from .models import QuestionVote
+from .models import AnswerComment
 from .errors import InvalidFieldError
 
 
 class HomeView(View):
+
     def get(self, request, *args, **kwargs):
         """
         """
@@ -29,6 +32,7 @@ class HomeView(View):
 
 
 class SignInView(View):
+
     def get(self, request, *args, **kwargs):
         # TODO: Check the session
         """
@@ -55,6 +59,7 @@ class SignInView(View):
 
 
 class SignUpView(View):
+
     def get(self, request, *args, **kwargs):
         # TODO: Check the session
         """
@@ -100,6 +105,7 @@ class SignUpView(View):
 
 
 class SignOutView(View):
+
     def get(self, request, *args, **kwargs):
         logout(request)
         return redirect('/signin')
@@ -130,6 +136,7 @@ class UserProfileView(View):
 
 
 class QuestionView(View):
+
     def get(self, request, *args, **kwargs):
         """
         1. Find the question with question_id.
@@ -156,8 +163,13 @@ class QuestionView(View):
                 'created_time').filter(question=question, vote_type=True)
             question_downvotes = QuestionVote.objects.order_by(
                 'created_time').filter(question=question, vote_type=False)
+            # TODO Limiting the number of comments
             answers = Answer.objects.order_by('created_time').filter(
-                question=question)
+                question=question).prefetch_related(
+                Prefetch('answercomment_set',
+                         queryset=AnswerComment.objects.order_by(
+                             'created_time').all(),
+                         to_attr="comments"))
             data = {
                 'question': question,
                 'answers': answers,
@@ -173,6 +185,7 @@ class QuestionView(View):
 
 
 class QuestionActionView(View):
+
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
 
@@ -284,7 +297,7 @@ class QuestionActionView(View):
             raise Exception('Unauthorized action')
         if err_msgs:
             raise InvalidFieldError(messages=err_msgs)
-        question.delete()  # TODO: Enable the cascading delete?
+        question.delete()
         return redirect('/')
 
     def _vote(self, request, qid, question, up=True):
@@ -314,6 +327,7 @@ class QuestionActionView(View):
 
 
 class AskQuestionView(View):
+
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
         """
@@ -348,6 +362,69 @@ class AskQuestionView(View):
                 messages.error(request, msg)
             return redirect('/question/ask/')
         except Exception as e:
+            print(e)
             message = 'Error'
             messages.error(request, message)
             return redirect('/question/ask/')
+
+
+class AnswerActionView(View):
+
+    @method_decorator(login_required)
+    def post(self, request, *args, **kwargs):
+        """
+        /answer/<:id>/accept/
+        /answer/<:id>/edit/
+        /answer/<:id>/comment/
+        /answer/<:id>/append/
+        /answer/<:id>/delete/
+        /answer/<:id>/upvote/
+        /answer/<:id>/downvote/
+        """
+        try:
+            aid = kwargs['answer_id']
+            action = kwargs['action']
+            answer = Answer.objects.filter(id=int(aid))
+
+            if action == 'edit':
+                pass
+            elif action == 'comment':
+                return self._comment(request, answer)
+        except InvalidFieldError as e:
+            msgs = e.messages
+            for msg in msgs:
+                messages.error(request, msg)
+            return redirect('/question/ask/')
+        except Exception as e:
+            print(e)
+            message = 'Error'
+            messages.error(request, message)
+            return redirect('/question/ask/')
+
+    def _edit(self, request, answer):
+        pass
+
+    def _accept(self, request, answer):
+        pass
+
+    def _comment(self, request, answer):
+        content = request.POST['answer_comment']
+        err_msgs = []
+        if not content:
+            err_msgs.append('No content')
+        if err_msgs:
+            raise InvalidFieldError(messages=err_msgs)
+        comment = AnswerComment.objects.create(answer=answer[0],
+                                               user=request.user,
+                                               content=content)
+        comment.save()
+        return redirect('/question/{0}/'.format(answer[0].question.id))
+
+    def _append(self, request, answer):
+        pass
+
+    def _delete(self, request, answer):
+        pass
+
+    def _vote(self, request, answer):
+        pass

@@ -21,8 +21,11 @@ urlpatterns = patterns(
         name='user-setting-view'),
     url(r'^question/(?P<question_id>[0-9]+)/$', views.QuestionView.as_view(),
         name='question-view'),
-    url(r'^question/ask/$', views.AskQuestionView.as_view(), name='ask-question'),
+    url(r'^question/ask/$',
+        views.AskQuestionView.as_view(), name='ask-question'),
     url(r'^question/(?P<question_id>[0-9]+)/(?P<action>answer|edit|append|delete|comment|upvote|downvote)/$',
         views.QuestionActionView.as_view(),
         name='question-action'),
+    url(r'^answer/(?P<answer_id>[0-9]+)/(?P<action>accept|edit|comment|delete|upvote|downvote)/$',
+        views.AnswerActionView.as_view(), name='answer-action'),
 )

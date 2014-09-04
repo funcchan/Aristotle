@@ -87,8 +87,8 @@ class Answer(models.Model):
     content = models.TextField(null=False)
     author = models.ForeignKey(User)
     question = models.ForeignKey(Question)
-    up_votes = models.IntegerField(default=0)
-    down_votes = models.IntegerField(default=0)
+    # up_votes = models.IntegerField(default=0)
+    # down_votes = models.IntegerField(default=0)
     accepted = models.BooleanField(default=False)
     created_time = models.DateTimeField()
 
