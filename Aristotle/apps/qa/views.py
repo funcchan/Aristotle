@@ -2,7 +2,7 @@
 #
 # @name: views.py
 # @create: Aug. 25th, 2014
-# @update: Sep. 4rd, 2014
+# @update: Sep. 4th, 2014
 # @author: hitigon@gmail.com
 from django.http import Http404
 from django.shortcuts import render, redirect
@@ -15,6 +15,7 @@ from django.contrib.auth.decorators import login_required
 
 from .models import Question, Answer
 from .models import QuestionComment, QuestionAppend
+from .models import QuestionVote
 from .errors import InvalidFieldError
 
 
@@ -156,6 +157,10 @@ class QuestionView(View):
                 'created_time').filter(question=question)
             question_appends = QuestionAppend.objects.order_by(
                 'created_time').filter(question=question)
+            question_upvotes = QuestionVote.objects.order_by(
+                'created_time').filter(question=question, vote_type=True)
+            question_downvotes = QuestionVote.objects.order_by(
+                'created_time').filter(question=question, vote_type=False)
             answers = Answer.objects.order_by('created_time').filter(
                 question=question)
             data = {
@@ -163,6 +168,8 @@ class QuestionView(View):
                 'answers': answers,
                 'question_appends': question_appends,
                 'question_comments': question_comments,
+                'question_upvotes': question_upvotes,
+                'question_downvotes': question_downvotes,
             }
             return render(request, 'qa/question.html', data)
         except Exception as e:
@@ -219,6 +226,10 @@ class QuestionActionView(View):
                 return self._append(request, qid, question)
             elif action == 'delete':
                 return self._delete(request, qid, question)
+            elif action == 'upvote':
+                return self._vote(request, qid, question)
+            elif action == 'downvote':
+                return self._vote(request, qid, question, False)
 
         except InvalidFieldError as e:
             msgs = e.messages
@@ -294,6 +305,18 @@ class QuestionActionView(View):
             raise InvalidFieldError(messages=err_msgs)
         question.delete()
         return redirect('/')
+
+    def _vote(self, request, qid, question, up=True):
+        user = request.user
+        voted = QuestionVote.objects.filter(question=question[0], user=user)
+        if voted:
+            if voted[0].vote_type != up:
+                voted.delete()
+        else:
+            vote = QuestionVote.objects.create(
+                question=question[0], user=user, vote_type=up)
+            vote.save()
+        return redirect('/question/{0}/'.format(qid))
 
 
 class AskQuestionView(View):

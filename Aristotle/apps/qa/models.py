@@ -2,7 +2,7 @@
 #
 # @name: models.py
 # @create:
-# @update: Sep. 3rd, 2014
+# @update: Sep. 4th, 2014
 # @author:
 import datetime
 from django.db import models
@@ -36,8 +36,6 @@ class Question(models.Model):
     title = models.TextField(null=False)
     content = models.TextField(null=False)
     author = models.ForeignKey(User)
-    up_votes = models.IntegerField(default=0)
-    down_votes = models.IntegerField(default=0)
     number_of_views = models.IntegerField(default=0)
     solved = models.BooleanField(default=False)
     created_time = models.DateTimeField()
