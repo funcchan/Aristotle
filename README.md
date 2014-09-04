@@ -1,10 +1,4 @@
 Aristotle
 =========
 ###Progress:
-* Init the basic structure
-* Added some basic Views
-
-###TODO:
-* User auth system
-  * Sessions
-  * Cookies
+Please use `dev` as the current branch!
