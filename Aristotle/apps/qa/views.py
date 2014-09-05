@@ -308,6 +308,22 @@ class TaggedQuestionsView(View):
         return render(request, 'qa/questions.html', {"questions": questions})
 
 
+class TagsView(View):
+
+    def get(self, request, *args, **kwargs):
+        PER_PAGE = 10
+        page = request.GET.get('page')
+        tag_list = Tag.objects.values('name').distinct()
+        paginator = Paginator(tag_list, PER_PAGE)
+        try:
+            tags = paginator.page(page)
+        except PageNotAnInteger:
+            tags = paginator.page(1)
+        except EmptyPage:
+            tags = paginator.page(paginator.num_pages)
+        return render(request, 'qa/tags.html', {'tags': tags})
+
+
 class QuestionActionView(View):
 
     @method_decorator(login_required)
@@ -452,6 +468,9 @@ class QuestionActionView(View):
             err_msgs.append('No content')
         if err_msgs:
             raise InvalidFieldError(messages=err_msgs)
+        # Users cannot answer their own questions
+        # if request.user == question[0].author:
+        #     raise Exception('Unauthorized action')
         answer = Answer.objects.create(content=content,
                                        question=question[0],
                                        author=request.user)
