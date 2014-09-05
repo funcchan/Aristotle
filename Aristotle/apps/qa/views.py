@@ -30,7 +30,7 @@ from utils import parse_listed_strs
 class HomeView(View):
 
     def get(self, request, *args, **kwargs):
-        """
+        """test
         """
         # TODO list order, limits
         questions = Question.objects.order_by('-created_time')
