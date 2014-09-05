@@ -29,4 +29,5 @@ urlpatterns = patterns(
     url(r'^answer/(?P<answer_id>[0-9]+)/(?P<action>accept|edit|comment|delete|append|upvote|downvote)/$',
         views.AnswerActionView.as_view(), name='answer-action'),
     url(r'^questions/$', views.QuestionsView.as_view(), name='questions'),
+    url(r'^questions/tagged/(?P<tag_name>[a-z0-9\-]+)/$', views.TaggedQuestionsView.as_view(), name='questions'),
 )

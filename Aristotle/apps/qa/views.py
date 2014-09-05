@@ -246,6 +246,51 @@ class QuestionsView(View):
         return render(request, 'qa/questions.html', {"questions": questions})
 
 
+class TaggedQuestionsView(View):
+
+    def get(self, request, *args, **kwargs):
+
+        PER_PAGE = 5
+        tag = kwargs['tag_name']
+        page = request.GET.get('page')
+        sort = request.GET.get('sort')
+        if not sort:
+            sort = 'newest'
+        tags = Tag.objects.filter(name=tag)
+        question_list = []
+        unsolved_question_list = []
+        for t in tags:
+            if not t.question.solved:
+                unsolved_question_list.append(t.question)
+            question_list.append(t.question)
+
+        if sort == 'votes':
+            question_list = sorted(question_list, key=lambda i: (
+                i.votes_count, i.created_time), reverse=True)
+        elif sort == 'answers':
+            question_list = sorted(question_list, key=lambda i: (
+                i.solved, i.answers_count, i.created_time), reverse=True)
+        elif sort == 'unanswered':
+            question_list = sorted(unsolved_question_list, key=lambda i: (
+                i.answers_count, i.votes_count, i.created_time))
+        elif sort == 'views':
+            question_list = sorted(question_list, key=lambda i: (
+                i.number_of_views, i.created_time), reverse=True)
+        else:
+            question_list = sorted(
+                question_list, key=lambda i: i.created_time, reverse=True)
+
+        paginator = Paginator(question_list, PER_PAGE)
+        try:
+            questions = paginator.page(page)
+        except PageNotAnInteger:
+            questions = paginator.page(1)
+        except EmptyPage:
+            questions = paginator.page(paginator.num_pages)
+
+        return render(request, 'qa/questions.html', {"questions": questions})
+
+
 class QuestionActionView(View):
 
     @method_decorator(login_required)

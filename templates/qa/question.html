@@ -40,7 +40,7 @@
     </p>
     <p>
         {% for tag in question.tags %}
-            <a href="">{{ tag.name }}</a>, 
+            <a href="/questions/tagged/{{ tag.name }}/">{{ tag.name }}</a>, 
         {% endfor %}
     </p>
     <h3>Append</h3>
