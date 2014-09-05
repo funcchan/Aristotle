@@ -1,0 +1,17 @@
+{% extends "qa/base.html" %}
+{% block title %} User Profile {% endblock %}
+
+{% block content %}
+<h2>{{ user.username }}'s Profile</h2>
+<div>
+    <a href="./edit">Edit</a>
+</div>
+<div>
+    <p>{{ user.first_name }} {{ user.last_name }}</p>
+    <p>{{ user.email }}</p>
+    <p>{{ user.member.gender }}</p>
+    <p>{{ user.member.age }}</p>
+    <p>{{ user.member.address }}</p>
+    <p>{{ user.member.website }}</p>
+</div>
+{% endblock %}

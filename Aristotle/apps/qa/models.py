@@ -2,34 +2,29 @@
 #
 # @name: models.py
 # @create:
-# @update: Sep. 4th, 2014
+# @update: Sep. 5th, 2014
 # @author:
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 
-# class User(models.Model):
-#     username = models.TextField(max_length=16)
-#     password = models.TextField(max_length=16)
-#     email = models.EmailField(unique=True)
-#     first_name = models.TextField()
-#     last_name = models.TextField()
-#     gender = models.IntegerField()
-#     age = models.IntegerField()
-#     occupation = models.TextField(null=True)
-#     education = models.TextField()
-#     address = models.TextField(null=True)
-#     phone = models.TextField(null=True)
-#     company = models.TextField(null=True)
-#     website = models.TextField(null=True)
-#     avatar = models.TextField(null=True)
-#     interests = models.TextField(null=True)
-#     bio = models.TextField(null=True)
-#     reg_time = models.DateTimeField()
-#     last_login_time = models.DateTimeField()
-#     last_login_ip = models.URLField()
-#     level = models.IntegerField()
-#     reputation = models.IntegerField()
+
+class Member(models.Model):
+    user = models.OneToOneField(User)
+    gender = models.IntegerField(null=True)
+    age = models.IntegerField(null=True)
+    occupation = models.CharField(null=True, max_length=100)
+    education = models.CharField(null=True, max_length=20)
+    address = models.CharField(null=True, max_length=255)
+    phone = models.CharField(null=True, max_length=20)
+    company = models.CharField(null=True, max_length=100)
+    website = models.URLField(null=True)
+    avatar = models.CharField(null=True, max_length=255)
+    interests = models.CharField(null=True, max_length=255)
+    bio = models.TextField(null=True)
+    last_login_ip = models.CharField(null=True, max_length=40)
+    # level = models.IntegerField()
+    # reputation = models.IntegerField()
 
 
 class Question(models.Model):

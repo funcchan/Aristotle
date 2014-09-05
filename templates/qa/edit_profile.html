@@ -1,0 +1,16 @@
+{% extends "qa/base.html" %}
+{% block title %} Edit User Profile {% endblock %}
+
+{% block content %}
+<h2>{{ user.username }}'s Profile</h2>
+<div>
+    <p>
+        <label>First Name</label>
+        <input type="text" value="{{ user.first_name }}" />
+    </p>
+    <p>
+        <label>Last Name</label>
+        <input type="text" value="{{ user.last_name }}" />
+    </p>
+</div>
+{% endblock %}

@@ -2,8 +2,8 @@
 #
 # @name: views.py
 # @create: Aug. 25th, 2014
-# @update: Sep. 4th, 2014
-# @author: hitigon@gmail.com
+# @update: Sep. 5th, 2014
+# @author: Z. Huang, Liangju
 from django.http import Http404
 from django.shortcuts import render, redirect
 from django.utils.decorators import method_decorator
@@ -21,6 +21,7 @@ from models import QuestionComment, QuestionAppend
 from models import QuestionVote, QuestionHit
 from models import AnswerComment, AnswerVote
 from models import AnswerAppend
+from models import Member
 from models import Tag
 from errors import InvalidFieldError
 from utils import parse_listed_strs
@@ -55,7 +56,9 @@ class SignInView(View):
         password = request.POST['password']
         user = authenticate(username=username, password=password)
         if user:
+            ip = request.META['REMOTE_ADDR']
             login(request, user)
+            Member.objects.filter(user=user).update(last_login_ip=ip)
             return redirect('/')
         else:
             msg = 'Username or password is not correct'
@@ -78,10 +81,10 @@ class SignUpView(View):
         return render(request, 'qa/signup.html')
 
     def post(self, request, *args, **kwargs):
-        username = request.POST['username']
-        email = request.POST['email']
-        password = request.POST['password']
-        repassword = request.POST['repassword']
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        repassword = request.POST.get('repassword')
         err_msgs = []
         if not username:
             err_msgs.append('Username is required')
@@ -96,6 +99,7 @@ class SignUpView(View):
                 raise InvalidFieldError(messages=err_msgs)
             user = User.objects.create_user(username, email, password)
             user.save()
+            Member.objects.create(user=user).save()
             return redirect('/signin')
 
         except InvalidFieldError as e:
@@ -116,28 +120,37 @@ class SignOutView(View):
         return redirect('/signin')
 
 
-# Start by Liangju
-# @ Aug. 28th, 2014
-class UserProfileView(View):
-    template_name = 'qa/user_profile.html'
+class ProfileView(View):
 
     def get(self, request, *args, **kwargs):
-        # TODO: View for user info
-        """
-        1. Retrieval the User data by User ID
-            - If no such user. Redirect to non-existing page.
+        try:
+            if 'user_id' in kwargs:
+                uid = kwargs['user_id']
+                user = User.objects.get(id=int(uid))
+            else:
+                user = request.user
+            return render(request, 'qa/profile.html', {'user': user})
+        except Exception:
+            raise Http404
 
-        2. Check the current user login status
-            - If it is the page for current user, there should be more links, such as Edit, My Question, Modification, etc.
-            - If it is the page for other users, just show the necessary information.
 
-        3. Render the page
+class EditProfileView(View):
 
-        :param request:
-        :return:
-        """
-        return render(request, 'qa/user_profile.html',
-                      {'user_id': self.kwargs['user_id']})
+    @method_decorator(login_required)
+    def get(self, request, *args, **kwargs):
+        try:
+            if 'user_id' in kwargs:
+                uid = kwargs['user_id']
+                user = User.objects.get(id=int(uid))
+            else:
+                user = request.user
+            return render(request, 'qa/edit_profile.html', {'user': user})
+        except Exception:
+            raise Http404
+
+    @method_decorator(login_required)
+    def post(self, request, *args, **kwargs):
+        pass
 
 
 class QuestionView(View):
@@ -322,6 +335,12 @@ class TagsView(View):
         except EmptyPage:
             tags = paginator.page(paginator.num_pages)
         return render(request, 'qa/tags.html', {'tags': tags})
+
+
+class UsersView(View):
+
+    def get(self, request, *args, **kwargs):
+        pass
 
 
 class QuestionActionView(View):
