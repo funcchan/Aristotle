@@ -33,18 +33,12 @@ from django.utils import timezone
 
 
 class Question(models.Model):
-    title = models.TextField(null=False)
+    title = models.CharField(null=False, max_length=255)
     content = models.TextField(null=False)
     author = models.ForeignKey(User)
-    number_of_views = models.IntegerField(default=0)
     solved = models.BooleanField(default=False)
-    created_time = models.DateTimeField()
-    # updated_time = models.DateTimeField()
-
-    def save(self, *args, **kwargs):
-        if not self.id:
-            self.created_time = timezone.now()
-        return super(Question, self).save(*args, **kwargs)
+    created_time = models.DateTimeField(default=timezone.now())
+    updated_time = models.DateTimeField(null=True)
 
     def _get_votes_count(self):
         return self.questionvote_set.all().count()
@@ -52,44 +46,40 @@ class Question(models.Model):
     def _get_answers_count(self):
         return self.answer_set.all().count()
 
+    def _get_hits_count(self):
+        return self.questionhit_set.all().count()
+
     votes_count = property(_get_votes_count)
     answers_count = property(_get_answers_count)
+    hits_count = property(_get_hits_count)
+
+
+class QuestionHit(models.Model):
+    question = models.ForeignKey(Question)
+    ip = models.CharField(null=False, max_length=40)
+    session = models.CharField(null=False, max_length=120)
+    created_time = models.DateTimeField(default=timezone.now())
 
 
 class QuestionAppend(models.Model):
     question = models.ForeignKey(Question)
     content = models.TextField(null=False)
-    created_time = models.DateTimeField()
-
-    def save(self, *args, **kwargs):
-        if not self.id:
-            self.created_time = timezone.now()
-        return super(QuestionAppend, self).save(*args, **kwargs)
+    created_time = models.DateTimeField(default=timezone.now())
 
 
 class QuestionComment(models.Model):
     question = models.ForeignKey(Question)
     user = models.ForeignKey(User)
     content = models.TextField(null=False)
-    created_time = models.DateTimeField()
-
-    def save(self, *args, **kwargs):
-        if not self.id:
-            self.created_time = timezone.now()
-        return super(QuestionComment, self).save(*args, **kwargs)
+    created_time = models.DateTimeField(default=timezone.now())
 
 
 class QuestionVote(models.Model):
     question = models.ForeignKey(Question)
     user = models.ForeignKey(User)
     vote_type = models.BooleanField(default=False)
-    reason = models.TextField()
-    created_time = models.DateTimeField()
-
-    def save(self, *args, **kwargs):
-        if not self.id:
-            self.created_time = timezone.now()
-        return super(QuestionVote, self).save(*args, **kwargs)
+    reason = models.CharField(max_length=255)
+    created_time = models.DateTimeField(default=timezone.now())
 
 
 class Answer(models.Model):
@@ -97,52 +87,32 @@ class Answer(models.Model):
     author = models.ForeignKey(User)
     question = models.ForeignKey(Question)
     accepted = models.BooleanField(default=False)
-    # accepted_time
-    # updated_time
-    created_time = models.DateTimeField()
-
-    def save(self, *args, **kwargs):
-        if not self.id:
-            self.created_time = timezone.now()
-        return super(Answer, self).save(*args, **kwargs)
+    accepted_time = models.DateTimeField(null=True)
+    updated_time = models.DateTimeField(null=True)
+    created_time = models.DateTimeField(default=timezone.now())
 
 
 class AnswerAppend(models.Model):
     answer = models.ForeignKey(Answer)
     content = models.TextField(null=False)
-    created_time = models.DateTimeField()
-
-    def save(self, *args, **kwargs):
-        if not self.id:
-            self.created_time = timezone.now()
-        return super(AnswerAppend, self).save(*args, **kwargs)
+    created_time = models.DateTimeField(default=timezone.now())
 
 
 class AnswerComment(models.Model):
     answer = models.ForeignKey(Answer)
     user = models.ForeignKey(User)
     content = models.TextField(null=False)
-    created_time = models.DateTimeField()
-
-    def save(self, *args, **kwargs):
-        if not self.id:
-            self.created_time = timezone.now()
-        return super(AnswerComment, self).save(*args, **kwargs)
+    created_time = models.DateTimeField(default=timezone.now())
 
 
 class AnswerVote(models.Model):
     answer = models.ForeignKey(Answer)
     user = models.ForeignKey(User)
     vote_type = models.BooleanField(default=False)
-    reason = models.TextField()
-    created_time = models.DateTimeField()
-
-    def save(self, *args, **kwargs):
-        if not self.id:
-            self.created_time = timezone.now()
-        return super(AnswerVote, self).save(*args, **kwargs)
+    reason = models.CharField(max_length=255)
+    created_time = models.DateTimeField(default=timezone.now())
 
 
 class Tag(models.Model):
-    name = models.TextField()
+    name = models.CharField(null=False, max_length=40)
     question = models.ForeignKey(Question)

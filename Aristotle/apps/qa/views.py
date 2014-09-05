@@ -7,6 +7,7 @@
 from django.http import Http404
 from django.shortcuts import render, redirect
 from django.utils.decorators import method_decorator
+from django.utils import timezone
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
@@ -17,7 +18,7 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 from models import Question, Answer
 from models import QuestionComment, QuestionAppend
-from models import QuestionVote
+from models import QuestionVote, QuestionHit
 from models import AnswerComment, AnswerVote
 from models import AnswerAppend
 from models import Tag
@@ -156,9 +157,22 @@ class QuestionView(View):
         3. Render the page
         """
         # TODO answer order
+
         try:
             qid = kwargs['question_id']
             question = Question.objects.filter(id=int(qid))
+            # store session for anonymous users
+            if hasattr(request, 'session') and not request.session.session_key:
+                request.session.save()
+            session = request.session.session_key
+            hitted = QuestionHit.objects.filter(
+                question=question[0], session=session)
+            if not hitted:
+                ip = request.META['REMOTE_ADDR']
+                hit = QuestionHit.objects.create(question=question[0],
+                                                 ip=ip,
+                                                 session=session)
+                hit.save()
             qcomment_qs = QuestionComment.objects.order_by(
                 'created_time')
             qappend_qs = QuestionAppend.objects.order_by(
@@ -218,24 +232,27 @@ class QuestionsView(View):
         sort = request.GET.get('sort')
         if not sort:
             sort = 'newest'
-        qlist = Question.objects
+        question_list = Question.objects
         if sort == 'votes':
-            qlist = sorted(qlist.all(), key=lambda i: (
+            question_list = sorted(question_list.all(), key=lambda i: (
                 i.votes_count, i.created_time), reverse=True)
         elif sort == 'answers':
-            qlist = sorted(qlist.all(), key=lambda i: (
+            question_list = sorted(question_list.all(), key=lambda i: (
                 i.solved, i.answers_count, i.created_time), reverse=True)
         elif sort == 'unanswered':
-            qlist = sorted(qlist.filter(solved=False), key=lambda i: (
-                i.answers_count, i.votes_count, i.created_time))
+            question_list = sorted(question_list.filter(solved=False),
+                                   key=lambda i: (i.answers_count,
+                                                  i.votes_count,
+                                                  i.created_time))
         elif sort == 'views':
-            qlist = sorted(qlist.all(), key=lambda i: (
-                i.number_of_views, i.created_time), reverse=True)
+            question_list = sorted(question_list.all(), key=lambda i: (
+                i.hits_count, i.created_time), reverse=True)
         else:
-            qlist = sorted(
-                qlist.all(), key=lambda i: i.created_time, reverse=True)
+            question_list = sorted(
+                question_list.all(),
+                key=lambda i: i.created_time, reverse=True)
 
-        paginator = Paginator(qlist, PER_PAGE)
+        paginator = Paginator(question_list, PER_PAGE)
         try:
             questions = paginator.page(page)
         except PageNotAnInteger:
@@ -275,7 +292,7 @@ class TaggedQuestionsView(View):
                 i.answers_count, i.votes_count, i.created_time))
         elif sort == 'views':
             question_list = sorted(question_list, key=lambda i: (
-                i.number_of_views, i.created_time), reverse=True)
+                i.hits_count, i.created_time), reverse=True)
         else:
             question_list = sorted(
                 question_list, key=lambda i: i.created_time, reverse=True)
@@ -373,7 +390,8 @@ class QuestionActionView(View):
             raise InvalidFieldError(messages=err_msgs)
         if request.user != question[0].author:
             raise Exception('Unauthorized action')
-        question.update(title=title, content=content)
+        question.update(
+            title=title, content=content, updated_time=timezone.now())
         if tags:
             tags_list = parse_listed_strs(tags)
             stored_tags = set(
@@ -561,7 +579,7 @@ class AnswerActionView(View):
             raise InvalidFieldError(messages=err_msgs)
         if request.user != answer[0].author:
             raise Exception('Unauthorized action')
-        answer.update(content=content)
+        answer.update(content=content, updated_time=timezone.now())
 
     def _accept(self, request, answer):
         question = answer[0].question
@@ -576,7 +594,7 @@ class AnswerActionView(View):
         # the credit changes for each answer and user
         if question.solved or answer[0].accepted:
             raise Exception('Unsupported action')
-        answer.update(accepted=True)
+        answer.update(accepted=True, accepted_time=timezone.now())
         question.solved = True
         question.save()
 
