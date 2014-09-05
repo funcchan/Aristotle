@@ -1,0 +1,30 @@
+{% extends "qa/base.html" %}
+
+{% block title %}Questions{% endblock %}
+
+{% block content %}
+<ul>
+{% for question in questions %}
+    <li>
+        <h3><a href="/question/{{ question.id }}" title="G
+        o to {{ question.title }}">{{ question.title }}</a></h3>
+        <p>{{ question.content }}</p>
+    </li>
+{% endfor %}
+</ul>
+<div>
+    <span>
+        {% if questions.has_previous %}
+            <a href="?page={{ questions.previous_page_number }}">previous</a>
+        {% endif %}
+
+        <span class="current">
+            Page {{ questions.number }} of {{ questions.paginator.num_pages }}
+        </span>
+
+        {% if questions.has_next %}
+            <a href="?page={{ questions.next_page_number }}">next</a>
+        {% endif %}
+    </span>
+</div>
+{% endblock content %}

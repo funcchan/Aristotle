@@ -13,6 +13,7 @@ from django.contrib import messages
 from django.views.generic import View
 from django.contrib.auth.decorators import login_required
 from django.db.models import Prefetch
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 from models import Question, Answer
 from models import QuestionComment, QuestionAppend
@@ -30,7 +31,7 @@ class HomeView(View):
         """
         """
         # TODO list order, limits
-        questions = Question.objects.order_by('created_time')[:10]
+        questions = Question.objects.order_by('-created_time')
         return render(request, 'qa/index.html', {'questions': questions})
 
 
@@ -201,10 +202,48 @@ class QuestionView(View):
                 'question': question[0],
                 'answers': answers,
             }
+
             return render(request, 'qa/question.html', data)
         except Exception as e:
             print(e)
             raise Http404
+
+
+class QuestionsView(View):
+
+    def get(self, request, *args, **kwargs):
+
+        PER_PAGE = 5
+        page = request.GET.get('page')
+        sort = request.GET.get('sort')
+        if not sort:
+            sort = 'newest'
+        qlist = Question.objects
+        if sort == 'votes':
+            qlist = sorted(qlist.all(), key=lambda i: (
+                i.votes_count, i.created_time), reverse=True)
+        elif sort == 'answers':
+            qlist = sorted(qlist.all(), key=lambda i: (
+                i.solved, i.answers_count, i.created_time), reverse=True)
+        elif sort == 'unanswered':
+            qlist = sorted(qlist.filter(solved=False), key=lambda i: (
+                i.answers_count, i.votes_count, i.created_time))
+        elif sort == 'views':
+            qlist = sorted(qlist.all(), key=lambda i: (
+                i.number_of_views, i.created_time), reverse=True)
+        else:
+            qlist = sorted(
+                qlist.all(), key=lambda i: i.created_time, reverse=True)
+
+        paginator = Paginator(qlist, PER_PAGE)
+        try:
+            questions = paginator.page(page)
+        except PageNotAnInteger:
+            questions = paginator.page(1)
+        except EmptyPage:
+            questions = paginator.page(paginator.num_pages)
+
+        return render(request, 'qa/questions.html', {"questions": questions})
 
 
 class QuestionActionView(View):

@@ -46,6 +46,15 @@ class Question(models.Model):
             self.created_time = timezone.now()
         return super(Question, self).save(*args, **kwargs)
 
+    def _get_votes_count(self):
+        return self.questionvote_set.all().count()
+
+    def _get_answers_count(self):
+        return self.answer_set.all().count()
+
+    votes_count = property(_get_votes_count)
+    answers_count = property(_get_answers_count)
+
 
 class QuestionAppend(models.Model):
     question = models.ForeignKey(Question)
