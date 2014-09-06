@@ -28,7 +28,6 @@ from utils import parse_listed_strs
 
 
 class HomeView(View):
-
     def get(self, request, *args, **kwargs):
         """test
         """
@@ -38,7 +37,6 @@ class HomeView(View):
 
 
 class SignInView(View):
-
     def get(self, request, *args, **kwargs):
         # TODO: Check the session
         """
@@ -67,7 +65,6 @@ class SignInView(View):
 
 
 class SignUpView(View):
-
     def get(self, request, *args, **kwargs):
         # TODO: Check the session
         """
@@ -108,20 +105,19 @@ class SignUpView(View):
                 messages.error(request, msg)
             return redirect('/signup')
         except Exception as e:
+            print(e)
             message = 'Error'
             messages.error(request, message)
             return redirect('/signup')
 
 
 class SignOutView(View):
-
     def get(self, request, *args, **kwargs):
         logout(request)
         return redirect('/signin')
 
 
 class ProfileView(View):
-
     def get(self, request, *args, **kwargs):
         try:
             if 'user_id' in kwargs:
@@ -135,13 +131,14 @@ class ProfileView(View):
 
 
 class EditProfileView(View):
-
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
         try:
             if 'user_id' in kwargs:
                 uid = kwargs['user_id']
                 user = User.objects.get(id=int(uid))
+                if user != request.user:
+                    raise Http404
             else:
                 user = request.user
             return render(request, 'qa/edit_profile.html', {'user': user})
@@ -150,11 +147,51 @@ class EditProfileView(View):
 
     @method_decorator(login_required)
     def post(self, request, *args, **kwargs):
-        pass
+        try:
+            if 'user_id' in kwargs:
+                uid = kwargs['user_id']
+                user = User.objects.get(id=int(uid))
+
+                if user != request.user:
+                    raise Http404
+            else:
+                user = request.user
+
+            first_name = request.POST.get('first_name')
+            last_name = request.POST.get('last_name')
+            age = request.POST.get('age')
+            gender = request.POST.get('gender')
+            occupation = request.POST.get('occupation')
+            education = request.POST.get('education')
+            address = request.POST.get('address')
+            phone = request.POST.get('phone')
+            company = request.POST.get('company')
+            website = request.POST.get('website')
+            interests = request.POST.get('interests')
+            bio = request.POST.get('bio')
+
+            user.first_name = first_name
+            user.last_name = last_name
+            user.save()
+
+            user.member.age = int(age)
+            user.member.gender = gender
+            user.member.occupation = occupation
+            user.member.education = education
+            user.member.address = address
+            user.member.phone = phone
+            user.member.company = company
+            user.member.website = website
+            user.member.interests = interests
+            user.member.bio = bio
+            user.member.save()
+            return redirect('/profile/edit/')
+        except Exception as e:
+            print(e)
+            raise Http404
 
 
 class QuestionView(View):
-
     def get(self, request, *args, **kwargs):
         """
         1. Find the question with question_id.
@@ -237,7 +274,6 @@ class QuestionView(View):
 
 
 class QuestionsView(View):
-
     def get(self, request, *args, **kwargs):
 
         PER_PAGE = 5
@@ -277,7 +313,6 @@ class QuestionsView(View):
 
 
 class TaggedQuestionsView(View):
-
     def get(self, request, *args, **kwargs):
 
         PER_PAGE = 5
@@ -322,7 +357,6 @@ class TaggedQuestionsView(View):
 
 
 class TagsView(View):
-
     def get(self, request, *args, **kwargs):
         PER_PAGE = 10
         page = request.GET.get('page')
@@ -338,13 +372,11 @@ class TagsView(View):
 
 
 class UsersView(View):
-
     def get(self, request, *args, **kwargs):
         pass
 
 
 class QuestionActionView(View):
-
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
 
@@ -489,7 +521,7 @@ class QuestionActionView(View):
             raise InvalidFieldError(messages=err_msgs)
         # Users cannot answer their own questions
         # if request.user == question[0].author:
-        #     raise Exception('Unauthorized action')
+        # raise Exception('Unauthorized action')
         answer = Answer.objects.create(content=content,
                                        question=question[0],
                                        author=request.user)
@@ -497,7 +529,6 @@ class QuestionActionView(View):
 
 
 class AskQuestionView(View):
-
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
         """
@@ -545,7 +576,6 @@ class AskQuestionView(View):
 
 
 class AnswerActionView(View):
-
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
 
