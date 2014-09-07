@@ -112,6 +112,8 @@ class SignUpView(View):
 
 
 class SignOutView(View):
+
+    @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
         logout(request)
         return redirect('/signin')
