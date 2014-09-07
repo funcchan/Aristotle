@@ -2,7 +2,7 @@
 #
 # @name: models.py
 # @create:
-# @update: Sep. 5th, 2014
+# @update: Sep. 7th, 2014
 # @author:
 from django.db import models
 from django.contrib.auth.models import User
@@ -19,8 +19,8 @@ class Member(models.Model):
     phone = models.CharField(blank=True, default='', max_length=20)
     company = models.CharField(blank=True, default='', max_length=100)
     website = models.URLField(blank=True, default='')
-    avatar = models.ImageField(blank=True, default='static/defaultavatar.jpg',
-                               upload_to='static/pic_folder')
+    avatar = models.ImageField(blank=True, default='defaultavatar.jpg',
+                               upload_to='uploads/avatars/%m-%Y/')
     interests = models.CharField(blank=True, default='', max_length=255)
     bio = models.TextField(blank=True)
     last_login_ip = models.CharField(blank=True, default='', max_length=40)

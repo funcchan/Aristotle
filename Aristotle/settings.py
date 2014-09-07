@@ -1,12 +1,11 @@
 #!/usr/bin/env python
-
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+#
+# @name: settings.py
+# @create:
+# @update: Sep. 7th, 2014
+# @author:
 import os
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/1.6/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'sqj$o%q@d6rucj0ylgzef1)olnn1-urr%^9d20=y%b#7*ff*xx'
@@ -46,19 +45,12 @@ ROOT_URLCONF = 'Aristotle.urls'
 
 WSGI_APPLICATION = 'Aristotle.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/1.6/ref/settings/#databases
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 }
-
-# Internationalization
-# https://docs.djangoproject.com/en/1.6/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
 
@@ -71,17 +63,14 @@ USE_L10N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/1.6/howto/static-files/
-
-
 STATIC_URL = '/static/'
-
 LOGIN_URL = '/signin/'
 
+MEDIA_ROOT = os.path.join(BASE_DIR, 'static/')
+
 STATICFILES_DIRS = (
-    os.path.join(BASE_DIR, ""),
-    '/var/www/static/',
+    os.path.join(BASE_DIR, 'static'),
+    '/var/www/static',
 )
 
 TASK_UPLOAD_FILE_TYPES = ['gif', 'jpg', 'bmp', 'png']

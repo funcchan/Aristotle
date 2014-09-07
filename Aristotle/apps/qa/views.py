@@ -2,9 +2,9 @@
 #
 # @name: views.py
 # @create: Aug. 25th, 2014
-# @update: Sep. 5th, 2014
+# @update: Sep. 7th, 2014
 # @author: Z. Huang, Liangju
-from django.http import Http404, HttpResponse
+from django.http import Http404
 from django.shortcuts import render, redirect
 from django.utils.decorators import method_decorator
 from django.utils import timezone
@@ -28,6 +28,7 @@ from utils import parse_listed_strs
 
 
 class HomeView(View):
+
     def get(self, request, *args, **kwargs):
         """test
         """
@@ -37,6 +38,7 @@ class HomeView(View):
 
 
 class SignInView(View):
+
     def get(self, request, *args, **kwargs):
         # TODO: Check the session
         """
@@ -65,6 +67,7 @@ class SignInView(View):
 
 
 class SignUpView(View):
+
     def get(self, request, *args, **kwargs):
         # TODO: Check the session
         """
@@ -120,6 +123,7 @@ class SignOutView(View):
 
 
 class ProfileView(View):
+
     def get(self, request, *args, **kwargs):
         try:
             if 'user_id' in kwargs:
@@ -127,12 +131,15 @@ class ProfileView(View):
                 user = User.objects.get(id=int(uid))
             else:
                 user = request.user
+                if user.is_anonymous():
+                    raise Exception('Unauthorized action')
             return render(request, 'qa/profile.html', {'user': user})
         except Exception:
             raise Http404
 
 
 class EditProfileView(View):
+
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
         try:
@@ -194,6 +201,7 @@ class EditProfileView(View):
 
 
 class QuestionView(View):
+
     def get(self, request, *args, **kwargs):
         """
         1. Find the question with question_id.
@@ -276,6 +284,7 @@ class QuestionView(View):
 
 
 class QuestionsView(View):
+
     def get(self, request, *args, **kwargs):
 
         PER_PAGE = 5
@@ -315,6 +324,7 @@ class QuestionsView(View):
 
 
 class TaggedQuestionsView(View):
+
     def get(self, request, *args, **kwargs):
 
         PER_PAGE = 5
@@ -359,6 +369,7 @@ class TaggedQuestionsView(View):
 
 
 class TagsView(View):
+
     def get(self, request, *args, **kwargs):
         PER_PAGE = 10
         page = request.GET.get('page')
@@ -374,11 +385,13 @@ class TagsView(View):
 
 
 class UsersView(View):
+
     def get(self, request, *args, **kwargs):
         pass
 
 
 class QuestionActionView(View):
+
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
 
@@ -531,6 +544,7 @@ class QuestionActionView(View):
 
 
 class AskQuestionView(View):
+
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
         """
@@ -578,6 +592,7 @@ class AskQuestionView(View):
 
 
 class AnswerActionView(View):
+
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
 
@@ -715,6 +730,7 @@ class AnswerActionView(View):
 
 
 class EditAvatar(View):
+
     @method_decorator(login_required)
     def get(self, request):
         return render(request, 'qa/edit_avatar.html')
@@ -733,7 +749,7 @@ class EditAvatar(View):
             user.member.avatar = request.FILES.get('image')
             user.member.save()
 
+            return redirect('/profile/avatar/')
         except Exception as e:
-            return redirect('/')
-
-        return HttpResponse("OK")
+            print(e)
+            return redirect('/profile/avatar/')
