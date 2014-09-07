@@ -38,4 +38,10 @@ urlpatterns = patterns(
         views.EditProfileView.as_view(), name='edit-profile'),
     url(r'^profile/(?P<user_id>[0-9]+)/edit/$',
         views.EditProfileView.as_view(), name='edit-profile'),
+
+    url(r'^profile/avatar/$',
+        views.EditAvatar.as_view(), name='edit-avatar'),
+
+    # url(r'^upload/(?P<upload_type>[a-z0-9]+)/$',
+    #     views.Upload.as_view(), name='upload-file')
 )

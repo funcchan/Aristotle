@@ -4,6 +4,8 @@
 {% block content %}
 <h2>{{ user.username }}'s Profile</h2>
 <div>
+    <a href="../avatar">Edit Avatar</a>
+
     <form action="" method="post">
         {% csrf_token %}
         <p>

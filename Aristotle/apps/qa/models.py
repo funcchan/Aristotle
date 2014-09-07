@@ -19,7 +19,8 @@ class Member(models.Model):
     phone = models.CharField(blank=True, default='', max_length=20)
     company = models.CharField(blank=True, default='', max_length=100)
     website = models.URLField(blank=True, default='')
-    avatar = models.ImageField(blank=True, default='')
+    avatar = models.ImageField(blank=True, default='static/defaultavatar.jpg',
+                               upload_to='static/pic_folder')
     interests = models.CharField(blank=True, default='', max_length=255)
     bio = models.TextField(blank=True)
     last_login_ip = models.CharField(blank=True, default='', max_length=40)

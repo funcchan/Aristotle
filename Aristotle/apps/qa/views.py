@@ -4,7 +4,7 @@
 # @create: Aug. 25th, 2014
 # @update: Sep. 5th, 2014
 # @author: Z. Huang, Liangju
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from django.shortcuts import render, redirect
 from django.utils.decorators import method_decorator
 from django.utils import timezone
@@ -712,3 +712,28 @@ class AnswerActionView(View):
             vote = AnswerVote.objects.create(
                 answer=answer[0], user=user, vote_type=up)
             vote.save()
+
+
+class EditAvatar(View):
+    @method_decorator(login_required)
+    def get(self, request):
+        return render(request, 'qa/edit_avatar.html')
+
+    @method_decorator(login_required)
+    def post(self, request):
+        user = request.user
+
+        try:
+            # Use Clean Form?
+            upload_image = request.FILES.get('image')
+            if not upload_image:
+                raise Http404
+
+            # TODO: Check the uploaded file. And rename
+            user.member.avatar = request.FILES.get('image')
+            user.member.save()
+
+        except Exception as e:
+            return redirect('/')
+
+        return HttpResponse("OK")

@@ -74,6 +74,15 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.6/howto/static-files/
 
+
 STATIC_URL = '/static/'
 
 LOGIN_URL = '/signin/'
+
+STATICFILES_DIRS = (
+    os.path.join(BASE_DIR, ""),
+    '/var/www/static/',
+)
+
+TASK_UPLOAD_FILE_TYPES = ['gif', 'jpg', 'bmp', 'png']
+TASK_UPLOAD_FILE_MAX_SIZE = '2097152'
