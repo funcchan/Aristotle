@@ -733,7 +733,11 @@ class EditAvatar(View):
 
     @method_decorator(login_required)
     def get(self, request):
-        return render(request, 'qa/edit_avatar.html')
+        user = request.user
+        tmp = str(user.member.avatar).split('.')
+        avatar_path = tmp[0] + '_256_256.' + tmp[1]
+        return render(request, 'qa/edit_avatar.html',
+                      {'avatar_path': avatar_path})
 
     @method_decorator(login_required)
     def post(self, request):
@@ -746,7 +750,8 @@ class EditAvatar(View):
                 raise Http404
 
             # TODO: Check the uploaded file. And rename
-            user.member.avatar = request.FILES.get('image')
+            # print(request.FILES.get('image'))
+            user.member.avatar = upload_image
             user.member.save()
 
             return redirect('/profile/avatar/')

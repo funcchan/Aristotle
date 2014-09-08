@@ -7,7 +7,7 @@
 <h2>{{ user.username }}'s Profile</h2>
 <p>Update Avatar</p>
 {% load staticfiles %}
-<img src="{% static user.member.avatar %}" />
+<img src="{% static avatar_path %}" />
 <hr/>    
 <form method="post" enctype="multipart/form-data">
     {% csrf_token %}

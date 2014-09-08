@@ -7,6 +7,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
+from PIL import Image
 
 
 class Member(models.Model):
@@ -20,12 +21,28 @@ class Member(models.Model):
     company = models.CharField(blank=True, default='', max_length=100)
     website = models.URLField(blank=True, default='')
     avatar = models.ImageField(blank=True, default='defaultavatar.jpg',
-                               upload_to='uploads/avatars/%m-%Y/')
+                               upload_to='uploads/avatars/%Y/%m/')
     interests = models.CharField(blank=True, default='', max_length=255)
     bio = models.TextField(blank=True)
     last_login_ip = models.CharField(blank=True, default='', max_length=40)
     # level = models.IntegerField()
     # reputation = models.IntegerField()
+
+    def save(self, *args, **kwargs):
+        super(Member, self).save(*args, **kwargs)
+        photo = Image.open(self.avatar).convert('RGB')
+        path = self.avatar.path
+        tmp = path.split('.')
+        prefix, subfix = tmp[0], tmp[1]
+        size_list = [(256, 256), (128, 128), (32, 32)]
+
+        for size in size_list:
+            copy = photo.copy()
+            copy.thumbnail(size, Image.ANTIALIAS)
+            size_str = '_' + str(size[0]) + '_' + str(size[1]) + '.'
+            copy.save(prefix + size_str + subfix)
+            copy.close()
+        photo.close()
 
 
 class Question(models.Model):
