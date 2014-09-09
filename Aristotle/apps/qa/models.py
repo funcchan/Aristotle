@@ -29,7 +29,9 @@ class Member(models.Model):
     # reputation = models.IntegerField()
 
     def save(self, *args, **kwargs):
-        super(Member, self).save(*args, **kwargs)
+        if not self.id:
+            return super(Member, self).save(*args, **kwargs)
+
         photo = Image.open(self.avatar).convert('RGB')
         path = self.avatar.path
         tmp = path.split('.')
@@ -43,6 +45,7 @@ class Member(models.Model):
             copy.save(prefix + size_str + subfix)
             copy.close()
         photo.close()
+        super(Member, self).save(*args, **kwargs)
 
 
 class Question(models.Model):
