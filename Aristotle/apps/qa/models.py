@@ -2,12 +2,26 @@
 #
 # @name: models.py
 # @create:
-# @update: Sep. 7th, 2014
+# @update: Sep. 9th, 2014
 # @author:
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from PIL import Image
+from utils import get_utc_timestamp, format_time_path
+
+
+_DEFAULT_AVATAR = 'defaultavatar.jpg'
+_AVATAR_PATH = 'uploads/avatars/%Y/%m/'
+
+
+def upload_to_handler(instance, filename):
+    tmp = filename.split('.')
+    if tmp and len(tmp) == 2:
+        path = format_time_path(_AVATAR_PATH)
+        path += str(get_utc_timestamp()) + '.' + tmp[1]
+        return path
+    return _DEFAULT_AVATAR
 
 
 class Member(models.Model):
@@ -20,8 +34,8 @@ class Member(models.Model):
     phone = models.CharField(blank=True, default='', max_length=20)
     company = models.CharField(blank=True, default='', max_length=100)
     website = models.URLField(blank=True, default='')
-    avatar = models.ImageField(blank=True, default='defaultavatar.jpg',
-                               upload_to='uploads/avatars/%Y/%m/')
+    avatar = models.ImageField(blank=True, default=_DEFAULT_AVATAR,
+                               upload_to=upload_to_handler)
     interests = models.CharField(blank=True, default='', max_length=255)
     bio = models.TextField(blank=True)
     last_login_ip = models.CharField(blank=True, default='', max_length=40)
@@ -31,10 +45,9 @@ class Member(models.Model):
     def save(self, *args, **kwargs):
         if not self.id:
             return super(Member, self).save(*args, **kwargs)
-
+        super(Member, self).save(*args, **kwargs)
         photo = Image.open(self.avatar).convert('RGB')
-        path = self.avatar.path
-        tmp = path.split('.')
+        tmp = self.avatar.path.split('.')
         prefix, subfix = tmp[0], tmp[1]
         size_list = [(256, 256), (128, 128), (32, 32)]
 
@@ -45,7 +58,6 @@ class Member(models.Model):
             copy.save(prefix + size_str + subfix)
             copy.close()
         photo.close()
-        super(Member, self).save(*args, **kwargs)
 
 
 class Question(models.Model):

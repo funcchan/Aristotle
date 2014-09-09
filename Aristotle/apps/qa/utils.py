@@ -2,9 +2,11 @@
 #
 # @name: utils.py
 # @create: Sep. 4th, 2014
-# @update: Sep. 4th, 2014
+# @update: Sep. 9th, 2014
 # @author: hitigon@gmail.com
 import re
+import time
+import calendar
 
 
 def parse_listed_strs(strs, delim=None):
@@ -17,3 +19,11 @@ def parse_listed_strs(strs, delim=None):
         if len(sub) > 0:
             result.add(sub)
     return result
+
+
+def get_utc_timestamp():
+    return calendar.timegm(time.gmtime())
+
+
+def format_time_path(path):
+    return time.strftime(path, time.gmtime())

@@ -2,7 +2,7 @@
 #
 # @name: views.py
 # @create: Aug. 25th, 2014
-# @update: Sep. 7th, 2014
+# @update: Sep. 9th, 2014
 # @author: Z. Huang, Liangju
 from django.http import Http404
 from django.shortcuts import render, redirect
@@ -733,8 +733,7 @@ class EditAvatar(View):
 
     @method_decorator(login_required)
     def get(self, request):
-        user = request.user
-        tmp = str(user.member.avatar).split('.')
+        tmp = str(request.user.member.avatar).split('.')
         avatar_path = tmp[0] + '_256_256.' + tmp[1]
         return render(request, 'qa/edit_avatar.html',
                       {'avatar_path': avatar_path})
