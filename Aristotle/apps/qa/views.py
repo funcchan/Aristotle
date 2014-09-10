@@ -133,7 +133,14 @@ class ProfileView(View):
                 user = request.user
                 if user.is_anonymous():
                     raise Exception('Unauthorized action')
-            return render(request, 'qa/profile.html', {'user': user})
+            questions = Question.objects.order_by(
+                '-created_time').filter(author=user)
+            answers = Answer.objects.order_by(
+                '-created_time').filter(author=user)
+            return render(request, 'qa/profile.html',
+                          {'user': user,
+                           'questions': questions,
+                           'answers': answers})
         except Exception:
             raise Http404
 
@@ -534,7 +541,7 @@ class QuestionActionView(View):
             err_msgs.append('No content')
         if err_msgs:
             raise InvalidFieldError(messages=err_msgs)
-        # Users cannot answer their own questions
+        # User is allowed to answer their questions
         # if request.user == question[0].author:
         # raise Exception('Unauthorized action')
         answer = Answer.objects.create(content=content,

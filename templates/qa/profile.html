@@ -13,5 +13,21 @@
     <p>{{ user.member.age }}</p>
     <p>{{ user.member.address }}</p>
     <p>{{ user.member.website }}</p>
+    <h2>Asked these questions</h2>
+    <ul>
+        {% for question in questions %}
+            <li>
+                <a href="/question/{{ question.id }}/">{{ question.title }}</a>
+            </li>
+        {% endfor %}
+    </ul>
+    <h2>Answered these questions</h2>
+    <ul>
+        {% for answer in answers %}
+        <li>
+            <a href="/question/{{ answer.question.id }}/#{{ answer.id }}">{{ answer.question.title }}</a>
+        </li>
+        {% endfor %}
+    </ul>
 </div>
 {% endblock %}

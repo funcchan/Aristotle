@@ -81,7 +81,7 @@
     <ul>
     {% for answer in answers %}
         <li>
-            <p>{{ answer.content }}</p>
+            <p id="{{ answer.id }}">{{ answer.content }}</p>
             <p>
                 <span>{{ answer.author }}</span> | 
                 <span>{{ answer.created_time }}</span>
