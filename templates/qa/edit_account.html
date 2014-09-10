@@ -1,0 +1,36 @@
+{% extends "qa/base.html" %}
+
+{% block title %}Sign Up{% endblock %}
+
+{% block content %}
+{% if messages %}
+<ul>
+    {% for message in messages %}
+        <li>{{ message }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+<h2>{{ user.username }}'s account</h2>
+<form method="POST" action="/profile/account/">
+{% csrf_token %}
+    <p>
+        <label>Verify with your password:</label>
+        <input type="password" name="password" />
+    </p>
+    <p>
+        <label>Username:</label>
+        <input type="text" name="username" value="{{ user.username }}" />
+    </p>
+    <p>
+        <label>Email:</label>
+        <input type="email" name="email" value="{{ user.email }}" />
+    </p>
+    <p>
+        <label>New Password:</label>
+        <input type="password" name="new_password" />
+    </p>
+    <p>
+        <button type="submit">Save</button>
+    </p>
+</form>
+{% endblock %}

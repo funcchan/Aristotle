@@ -2,7 +2,7 @@
 #
 # @name: urls.py
 # @create:
-# @update: Sep. 5th, 2014
+# @update: Sep. 9th, 2014
 # @author:
 from django.conf.urls import patterns, include, url
 from Aristotle.apps.qa import views
@@ -38,10 +38,8 @@ urlpatterns = patterns(
         views.EditProfileView.as_view(), name='edit-profile'),
     url(r'^profile/(?P<user_id>[0-9]+)/edit/$',
         views.EditProfileView.as_view(), name='edit-profile'),
-
     url(r'^profile/avatar/$',
         views.EditAvatar.as_view(), name='edit-avatar'),
-
-    # url(r'^upload/(?P<upload_type>[a-z0-9]+)/$',
-    #     views.Upload.as_view(), name='upload-file')
+    url(r'^profile/account/$',
+        views.EditAccountView.as_view(), name='edit-account')
 )

@@ -59,6 +59,9 @@ class Member(models.Model):
             copy.close()
         photo.close()
 
+    def update(self, *args, **kwargs):
+        return super(Member, self).save(*args, **kwargs)
+
 
 class Question(models.Model):
     title = models.CharField(max_length=255)

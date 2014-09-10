@@ -2,6 +2,13 @@
 {% block title %} Edit User Profile {% endblock %}
 
 {% block content %}
+{% if messages %}
+<ul>
+    {% for message in messages %}
+        <li>{{ message }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
 <h2>{{ user.username }}'s Profile</h2>
 <div>
     <a href="../avatar">Edit Avatar</a>
