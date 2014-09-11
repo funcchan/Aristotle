@@ -2,7 +2,7 @@
 #
 # @name: views.py
 # @create: Aug. 25th, 2014
-# @update: Sep. 9th, 2014
+# @update: Sep. 10th, 2014
 # @author: Z. Huang, Liangju
 from django.http import Http404
 from django.shortcuts import render, redirect
@@ -21,8 +21,9 @@ from models import QuestionComment, QuestionAppend
 from models import QuestionVote, QuestionHit
 from models import AnswerComment, AnswerVote
 from models import AnswerAppend
-from models import Member
+from models import Member, Activation
 from models import Tag
+from notification import EmailNotification
 from errors import InvalidFieldError
 from utils import parse_listed_strs
 
@@ -97,9 +98,15 @@ class SignUpView(View):
         try:
             if err_msgs:
                 raise InvalidFieldError(messages=err_msgs)
-            user = User.objects.create_user(username, email, password)
+            user = User.objects.create_user(
+                username=username, email=email,
+                password=password)
             user.save()
             Member.objects.create(user=user).save()
+            Activation.objects.create(user=user).save()
+            # only for testing
+            # TODO handle emails concurrently (async queue)
+            EmailNotification(user).send_verfication()
             return redirect('/signin')
 
         except InvalidFieldError as e:
@@ -112,6 +119,30 @@ class SignUpView(View):
             message = 'Error'
             messages.error(request, message)
             return redirect('/signup')
+
+
+class ActivateView(View):
+
+    def get(self, request, *args, **kwargs):
+        """ Active user's account with a random code
+        """
+        print(request)
+        try:
+
+            code = kwargs['activation_code']
+
+            result = Activation.objects.get(code=code)
+            if result:
+                if not result.is_active and result.expire_time > timezone.now():
+                    result.is_active = True
+                    result.save()
+                    return render(request, 'qa/activation.html')
+                else:
+                    raise Exception('Expired code')
+            else:
+                raise Exception('No such code')
+        except Exception:
+            raise Http404()
 
 
 class SignOutView(View):
@@ -796,7 +827,7 @@ class AnswerActionView(View):
             vote.save()
 
 
-class EditAvatar(View):
+class EditAvatarView(View):
 
     @method_decorator(login_required)
     def get(self, request):
@@ -815,8 +846,7 @@ class EditAvatar(View):
             if not upload_image:
                 raise Http404
 
-            # TODO: Check the uploaded file. And rename
-            # print(request.FILES.get('image'))
+            # TODO: Check the uploaded file.
             user.member.avatar = upload_image
             user.member.save()
 

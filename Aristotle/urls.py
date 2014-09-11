@@ -2,7 +2,7 @@
 #
 # @name: urls.py
 # @create:
-# @update: Sep. 9th, 2014
+# @update: Sep. 10th, 2014
 # @author:
 from django.conf.urls import patterns, include, url
 from Aristotle.apps.qa import views
@@ -17,6 +17,8 @@ urlpatterns = patterns(
     url(r'^signin/$', views.SignInView.as_view(), name='signin'),
     url(r'^signup/$', views.SignUpView.as_view(), name='signup'),
     url(r'^signout/$', views.SignOutView.as_view(), name='signout'),
+    url(r'^activate/(?P<activation_code>[\w0-9]+)/$',
+        views.ActivateView.as_view(), name='activate'),
     url(r'^question/(?P<question_id>[0-9]+)/$', views.QuestionView.as_view(),
         name='question-view'),
     url(r'^question/ask/$',
@@ -39,7 +41,7 @@ urlpatterns = patterns(
     url(r'^profile/(?P<user_id>[0-9]+)/edit/$',
         views.EditProfileView.as_view(), name='edit-profile'),
     url(r'^profile/avatar/$',
-        views.EditAvatar.as_view(), name='edit-avatar'),
+        views.EditAvatarView.as_view(), name='edit-avatar'),
     url(r'^profile/account/$',
         views.EditAccountView.as_view(), name='edit-account')
 )

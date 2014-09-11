@@ -1,0 +1,16 @@
+{% extends "qa/base.html" %}
+
+{% block title %}Sign Up{% endblock %}
+
+{% block content %}
+{% if messages %}
+<ul>
+    {% for message in messages %}
+        <li>{{ message }}</li>
+    {% endfor %}
+</ul>
+{% else %}
+<p>Your account has been actived!</p>
+{% endif %}
+
+{% endblock %}

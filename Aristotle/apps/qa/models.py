@@ -2,13 +2,14 @@
 #
 # @name: models.py
 # @create:
-# @update: Sep. 9th, 2014
+# @update: Sep. 10th, 2014
 # @author:
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from PIL import Image
 from utils import get_utc_timestamp, format_time_path
+from utils import get_utc_time
 
 
 _DEFAULT_AVATAR = 'defaultavatar.jpg'
@@ -43,6 +44,8 @@ class Member(models.Model):
     # reputation = models.IntegerField()
 
     def save(self, *args, **kwargs):
+        """rewrite model's save method
+        """
         if not self.id:
             return super(Member, self).save(*args, **kwargs)
         super(Member, self).save(*args, **kwargs)
@@ -61,6 +64,22 @@ class Member(models.Model):
 
     def update(self, *args, **kwargs):
         return super(Member, self).save(*args, **kwargs)
+
+
+# class Preference(models.Model):
+#     user = models.OneToOneField(User)
+# notifications (w/ email)
+# e.g.
+
+# class Privacy(models.Model):
+#     user = models.OneToOneField(User)
+
+class Activation(models.Model):
+    user = models.OneToOneField(User)
+    is_active = models.BooleanField(default=False)
+    code = models.CharField(
+        unique=True, blank=True, default='', max_length=128)
+    expire_time = models.DateTimeField(default=get_utc_time(3600))
 
 
 class Question(models.Model):
