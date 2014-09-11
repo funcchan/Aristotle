@@ -26,24 +26,34 @@ Search
     </form>
 </div>
 <hr/>
+
 {% if type == 'user' %}
 <div id="user_result">
     <ul>
         {% for user in result %}
-            <li>{{ user.username }}</li>
+            <li>
+                <h3><a href="/profile/{{ user.id }}/">{{ user.username }}</a></h3>
+            </li>
         {% endfor %}
-
-
     </ul>
 </div>
 {% endif %}
+
 {% if type == 'question' %}
 <div id="question_result">
     <ul>
         {% for question in result %}
-            <li>{{ question.title }}</li>
+            <li>
+                <h3><a href="/question/{{ question.id }}" title="Go to {{ question.title }}">{{ question.title|title }}</a></h3>
+                <div>
+                    {{ question.votes_count }} | {{ question.answers_count }} | {{ question.hits_count }}
+                </div>
+                <p>{{ question.content|truncatechars:50 }}</p>
+                <div>
+                    <a href="/profile/{{ question.author.id }}/">{{ question.author }}</a> asked {{ question.created_time|timesince }} ago
+                </div>
+            </li>
         {% endfor %}
-
     </ul>
 </div>
 {% endif %}

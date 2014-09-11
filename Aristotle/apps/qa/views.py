@@ -2,10 +2,9 @@
 #
 # @name: views.py
 # @create: Aug. 25th, 2014
-# @update: Sep. 10th, 2014
+# @update: Sep. 11th, 2014
 # @author: Z. Huang, Liangju
-from itertools import chain
-from django.http import Http404, HttpResponse
+from django.http import Http404
 from django.shortcuts import render, redirect
 from django.utils.decorators import method_decorator
 from django.utils import timezone
@@ -14,8 +13,9 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.views.generic import View
 from django.contrib.auth.decorators import login_required
-from django.db.models import Prefetch, Q
+from django.db.models import Prefetch
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from Aristotle.apps.qa.search import search_question, search_user
 
 from models import Question, Answer
 from models import QuestionComment, QuestionAppend
@@ -878,16 +878,6 @@ class EditAvatarView(View):
 
 
 class SearchView(View):
-    def _search_question(self, query):
-        # TODO: This is just a raw search. We should add more features here.
-        results = Question.objects.filter(Q(content__contains=query)
-                                          | Q(title__contains=query))
-        return results
-
-    def _search_user(self, query):
-        results_user = User.objects.filter(username__contains=query)
-        return results_user
-
     def get(self, request):
         return render(request, 'qa/search.html')
 
@@ -895,24 +885,23 @@ class SearchView(View):
         try:
             search_type = request.POST.get('type')
             search_query = request.POST.get('query')
-            print(search_query)
             # TODO: Split by space
-            if not search_type or not search_query:
+
+            if not search_query:
                 raise Http404
 
-            if search_type == 'question':
-                result = self._search_question(search_query)
+            if not search_type or search_type == 'question':
+                search_type = 'question'
+                result = search_question(search_query)
 
             elif search_type == 'user':
-                result = self._search_user(search_query)
+                result = search_user(search_query)
 
             else:
                 raise Http404
 
-            print(result)
             return render(request, 'qa/search.html', {'result': result,
                                                       'type': search_type})
-
         except Exception as e:
             print(e)
             return redirect('/search/')
