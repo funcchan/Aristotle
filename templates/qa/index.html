@@ -3,13 +3,21 @@
 {% block title %}Home{% endblock %}
 
 {% block content %}
-<ul>
-{% for question in questions %}
-    <li>
-        <h3><a href="./question/{{ question.id }}" title="G
-        o to {{ question.title }}">{{ question.title }}</a></h3>
-        <p>{{ question.content }}</p>
-    </li>
-{% endfor %}
-</ul>
+
+<div class="row">
+    <div class="col-md-9">
+        <ul>
+        {% for question in questions %}
+            <li>
+                <h3><a href="./question/{{ question.id }}" title="G
+                o to {{ question.title }}">{{ question.title }}</a></h3>
+                <p>{{ question.content }}</p>
+            </li>
+        {% endfor %}
+        </ul>        
+    </div>
+    <div class="col-md-3">
+        Nothing yet
+    </div>
+</div>
 {% endblock content %}
