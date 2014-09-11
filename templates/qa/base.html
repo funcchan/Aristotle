@@ -20,20 +20,23 @@
                     <a href="/question/ask/">Ask Question</a>
                 </li>
                 <li>
+                    <a href="/questions/">Questions</a>
+                </li>
+                <li>
                     <a href="/tags/">Tags</a>
                 </li>
             </ul>
             <ul class="nav navbar-nav navbar-right">
                 {% if not user.is_authenticated %}
                 <li>
-                    <a href="/signin" title="Sign In">Sign In</a> 
+                    <a href="/signin/" title="Sign In">Sign In</a> 
                 </li>
                 <li>
-                    <a href="/signup" title="Sign Up">Sign Up</a>
+                    <a href="/signup/" title="Sign Up">Sign Up</a>
                 </li>
                 {% else %}
                 <li>
-                    <a href="/profile">Profile</a>
+                    <a href="/profile/">Profile</a>
                 </li>
                 <li>
                     <a href="/signout/" title="Sign Out">Sign Out</a>
