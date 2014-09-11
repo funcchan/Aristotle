@@ -4,7 +4,8 @@
 # @create: Aug. 25th, 2014
 # @update: Sep. 10th, 2014
 # @author: Z. Huang, Liangju
-from django.http import Http404
+from itertools import chain
+from django.http import Http404, HttpResponse
 from django.shortcuts import render, redirect
 from django.utils.decorators import method_decorator
 from django.utils import timezone
@@ -13,7 +14,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.views.generic import View
 from django.contrib.auth.decorators import login_required
-from django.db.models import Prefetch
+from django.db.models import Prefetch, Q
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 from models import Question, Answer
@@ -29,7 +30,6 @@ from utils import parse_listed_strs
 
 
 class HomeView(View):
-
     def get(self, request, *args, **kwargs):
         """test
         """
@@ -39,7 +39,6 @@ class HomeView(View):
 
 
 class SignInView(View):
-
     def get(self, request, *args, **kwargs):
         # TODO: Check the session
         """
@@ -68,7 +67,6 @@ class SignInView(View):
 
 
 class SignUpView(View):
-
     def get(self, request, *args, **kwargs):
         # TODO: Check the session
         """
@@ -122,7 +120,6 @@ class SignUpView(View):
 
 
 class ActivateView(View):
-
     def get(self, request, *args, **kwargs):
         """ Active user's account with a random code
         """
@@ -145,7 +142,6 @@ class ActivateView(View):
 
 
 class ResetPasswordView(View):
-
     def get(self, request, *args, **kwargs):
         if kwargs and 'reset_code' in kwargs:
             code = kwargs['reset_code']
@@ -184,7 +180,6 @@ class ResetPasswordView(View):
 
 
 class SignOutView(View):
-
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
         logout(request)
@@ -192,7 +187,6 @@ class SignOutView(View):
 
 
 class ProfileView(View):
-
     def get(self, request, *args, **kwargs):
         try:
             if 'user_id' in kwargs:
@@ -215,7 +209,6 @@ class ProfileView(View):
 
 
 class EditProfileView(View):
-
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
         try:
@@ -277,7 +270,6 @@ class EditProfileView(View):
 
 
 class EditAccountView(View):
-
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
         try:
@@ -337,7 +329,6 @@ class EditAccountView(View):
 
 
 class QuestionView(View):
-
     def get(self, request, *args, **kwargs):
         """
         1. Find the question with question_id.
@@ -420,7 +411,6 @@ class QuestionView(View):
 
 
 class QuestionsView(View):
-
     def get(self, request, *args, **kwargs):
 
         PER_PAGE = 5
@@ -460,7 +450,6 @@ class QuestionsView(View):
 
 
 class TaggedQuestionsView(View):
-
     def get(self, request, *args, **kwargs):
 
         PER_PAGE = 5
@@ -505,7 +494,6 @@ class TaggedQuestionsView(View):
 
 
 class TagsView(View):
-
     def get(self, request, *args, **kwargs):
         PER_PAGE = 10
         page = request.GET.get('page')
@@ -521,13 +509,11 @@ class TagsView(View):
 
 
 class UsersView(View):
-
     def get(self, request, *args, **kwargs):
         pass
 
 
 class QuestionActionView(View):
-
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
 
@@ -680,7 +666,6 @@ class QuestionActionView(View):
 
 
 class AskQuestionView(View):
-
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
         """
@@ -728,7 +713,6 @@ class AskQuestionView(View):
 
 
 class AnswerActionView(View):
-
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
 
@@ -866,7 +850,6 @@ class AnswerActionView(View):
 
 
 class EditAvatarView(View):
-
     @method_decorator(login_required)
     def get(self, request):
         tmp = str(request.user.member.avatar).split('.')
@@ -892,3 +875,44 @@ class EditAvatarView(View):
         except Exception as e:
             print(e)
             return redirect('/profile/avatar/')
+
+
+class SearchView(View):
+    def _search_question(self, query):
+        # TODO: This is just a raw search. We should add more features here.
+        results = Question.objects.filter(Q(content__contains=query)
+                                          | Q(title__contains=query))
+        return results
+
+    def _search_user(self, query):
+        results_user = User.objects.filter(username__contains=query)
+        return results_user
+
+    def get(self, request):
+        return render(request, 'qa/search.html')
+
+    def post(self, request):
+        try:
+            search_type = request.POST.get('type')
+            search_query = request.POST.get('query')
+            print(search_query)
+            # TODO: Split by space
+            if not search_type or not search_query:
+                raise Http404
+
+            if search_type == 'question':
+                result = self._search_question(search_query)
+
+            elif search_type == 'user':
+                result = self._search_user(search_query)
+
+            else:
+                raise Http404
+
+            print(result)
+            return render(request, 'qa/search.html', {'result': result,
+                                                      'type': search_type})
+
+        except Exception as e:
+            print(e)
+            return redirect('/search/')

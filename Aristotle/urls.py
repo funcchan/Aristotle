@@ -47,5 +47,7 @@ urlpatterns = patterns(
     url(r'^profile/avatar/$',
         views.EditAvatarView.as_view(), name='edit-avatar'),
     url(r'^profile/account/$',
-        views.EditAccountView.as_view(), name='edit-account')
+        views.EditAccountView.as_view(), name='edit-account'),
+
+    url(r'^search/$', views.SearchView.as_view(), name='search'),
 )

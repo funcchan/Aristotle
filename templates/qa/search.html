@@ -1,0 +1,51 @@
+{% extends 'qa/base.html' %}
+
+{% block title %}
+Search
+{% endblock %}
+
+{% block content %}
+
+<div>
+    <form action="/search/" method="post">
+        {% csrf_token %}
+        <input type="text" name="query" placeholder="Search.."/>
+        <button>Search</button>
+
+        <br/>
+        <label for="">Type:</label>
+        <select name="type" id="select_type">
+            <option value="question">
+                Question
+            </option>
+
+            <option value="user">
+                User
+            </option>
+        </select>
+    </form>
+</div>
+<hr/>
+{% if type == 'user' %}
+<div id="user_result">
+    <ul>
+        {% for user in result %}
+            <li>{{ user.username }}</li>
+        {% endfor %}
+
+
+    </ul>
+</div>
+{% endif %}
+{% if type == 'question' %}
+<div id="question_result">
+    <ul>
+        {% for question in result %}
+            <li>{{ question.title }}</li>
+        {% endfor %}
+
+    </ul>
+</div>
+{% endif %}
+
+{% endblock %}
