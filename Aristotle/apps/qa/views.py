@@ -22,7 +22,7 @@ from models import QuestionVote, QuestionHit
 from models import AnswerComment, AnswerVote
 from models import AnswerAppend
 from models import Member, Activation
-from models import Tag
+from models import Tag, ResetPassword
 from notification import EmailNotification
 from errors import InvalidFieldError
 from utils import parse_listed_strs
@@ -126,7 +126,6 @@ class ActivateView(View):
     def get(self, request, *args, **kwargs):
         """ Active user's account with a random code
         """
-        print(request)
         try:
 
             code = kwargs['activation_code']
@@ -142,6 +141,45 @@ class ActivateView(View):
             else:
                 raise Exception('No such code')
         except Exception:
+            raise Http404()
+
+
+class ResetPasswordView(View):
+
+    def get(self, request, *args, **kwargs):
+        if kwargs and 'reset_code' in kwargs:
+            code = kwargs['reset_code']
+            return render(request, 'qa/reset_password.html', {'code': code})
+        else:
+            return render(request, 'qa/reset.html')
+
+    def post(self, request, *args, **kwargs):
+        try:
+            if kwargs and 'reset_code' in kwargs:
+                password = request.POST.get('password')
+                repassword = request.POST.get('repassword')
+                code = kwargs['reset_code']
+                # TODO verfiy password
+                if password != repassword:
+                    raise Http404()
+                result = ResetPassword.objects.get(code=code)
+                if result:
+                    if result.expire_time > timezone.now():
+                        result.user.set_password(password)
+                        result.user.save()
+                        return redirect('/signin/')
+                    else:
+                        raise Exception('Expired code')
+                else:
+                    raise Exception('No such code')
+            else:
+                email = request.POST.get('email')
+                user = User.objects.get(email=email)
+                # try to catch errors
+                EmailNotification(user).send_reset_password()
+                return redirect('/reset/')
+        except Exception as e:
+            print(e)
             raise Http404()
 
 

@@ -5,6 +5,7 @@
 # @update: Sep. 10th, 2014
 # @author: Z. Huang
 from django.core.mail import send_mail, BadHeaderError
+from models import ResetPassword
 from utils import create_unique_code
 
 
@@ -35,4 +36,20 @@ class EmailNotification(object):
             return
 
     def send_reset_password(self):
-        pass
+        """only for testing purposes
+        """
+        subject = 'Reset your password'
+        message = 'Please use the address\n'
+        from_email = 'donotreply@something.com'
+        to_email = self.user.email
+        try:
+            code = create_unique_code()
+            ResetPassword.objects.create(user=self.user, code=code).save()
+            message += 'http://127.0.0.1:8001/reset/%s' % code
+            send_mail(subject, message, from_email, [to_email, ])
+        except BadHeaderError:
+            # log the debug information
+            return
+        except Exception:
+            # log
+            return

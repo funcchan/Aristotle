@@ -82,6 +82,13 @@ class Activation(models.Model):
     expire_time = models.DateTimeField(default=get_utc_time(3600))
 
 
+class ResetPassword(models.Model):
+    user = models.OneToOneField(User)
+    code = models.CharField(
+        unique=True, blank=True, default='', max_length=128)
+    expire_time = models.DateTimeField(default=get_utc_time(600))
+
+
 class Question(models.Model):
     title = models.CharField(max_length=255)
     content = models.TextField()
