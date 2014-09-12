@@ -27,7 +27,9 @@ from models import Tag, ResetPassword
 from forms import SignInForm, SignUpForm
 from forms import ResetForm, ResetPasswordForm
 from forms import EditProfileForm, EditAccountForm
-from forms import EditAvatarForm
+from forms import EditAvatarForm, AskQuestionForm
+from forms import EditQuestionForm, AnswerForm
+from forms import CommentQuestionForm, AppendQuestionForm
 from notification import EmailNotification
 from errors import InvalidFieldError
 from utils import parse_listed_strs
@@ -479,22 +481,12 @@ class QuestionView(View):
 
     def get(self, request, *args, **kwargs):
         """
-        1. Find the question with question_id.
-            - If not valid, redirect to 404
-
-        2. Retrieval contents
-            - Answers,
-            - Users,
-            - Comments,
-            - Appends,
-            - Tags.
-
-        3. Render the page
         """
         # TODO answer order
+        qid = kwargs['question_id']
 
         try:
-            qid = kwargs['question_id']
+
             question = Question.objects.filter(id=int(qid))
             # store session for anonymous users
             if hasattr(request, 'session') and not request.session.session_key:
@@ -547,9 +539,15 @@ class QuestionView(View):
                          queryset=avotedown_qs, to_attr='downvotes'),
                 Prefetch('answerappend_set',
                          queryset=aappend_qs, to_attr='appends'))
+            question_comment_form = CommentQuestionForm()
+            question_append_form = AppendQuestionForm()
+            answer_form = AnswerForm()
             data = {
                 'question': question[0],
                 'answers': answers,
+                'answer_form': answer_form,
+                'question_comment_form': question_comment_form,
+                'question_append_form': question_append_form,
             }
 
             return render(request, 'qa/question.html', data)
@@ -669,28 +667,49 @@ class QuestionActionView(View):
 
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
-
+        """render a question edition page
+        """
+        user = request.user
+        qid = kwargs['question_id']
+        action = kwargs['action']
         try:
-            user = request.user
-            qid = kwargs['question_id']
-            action = kwargs['action']
-            question = Question.objects.filter(id=int(qid))
-            qtags_qs = Tag.objects.all()
-            question = question.prefetch_related(
-                Prefetch('tag_set', queryset=qtags_qs, to_attr='tags'))
-            if action != 'edit':
-                raise Exception('Unsupported action')
-            if question[0].author != user:
-                raise Exception('Unauthorized action')
-            return render(request, 'qa/edit_question.html',
-                          {'question': question[0]})
-        except Exception:
-            # error handling is not done
-            raise Http404
+            qid = int(qid)
+        except TypeError:
+            raise Http404()
+
+        if action != 'edit':
+            return redirect('/question/%d/' % qid)
+
+        question_queryset = Question.objects.filter(id=qid)
+        if not question_queryset:
+            raise Http404()
+
+        if question_queryset[0].author != user:
+            return HttpResponse(status=401)
+
+        # instead of using prefetch, we can
+        # use get_tags method defined in the model
+        # prefetch might be a better solution,
+        # since it combines data from other tables
+        # into a single model
+        question_tags_queryset = Tag.objects.all()
+        question_queryset = question_queryset.prefetch_related(
+            Prefetch('tag_set', queryset=question_tags_queryset,
+                     to_attr='tags'))
+        question = question_queryset[0]
+        tags_list = ', '.join([tag.name for tag in question.tags])
+        initial = {
+            'title': question.title,
+            'content': question.content,
+            'tags': tags_list,
+        }
+        form = EditQuestionForm(initial=initial)
+        return render(request, 'qa/edit_question.html',
+                      {'question': question, 'form': form})
 
     @method_decorator(login_required)
     def post(self, request, *args, **kwargs):
-        """
+        """Multiple actions for questions
         /question/<:id>/answer/
         /question/<:id>/edit/
         /question/<:id>/comment/
@@ -699,171 +718,178 @@ class QuestionActionView(View):
         /question/<:id>/upvote/
         /question/<:id>/downvote/
         """
-        err_redirect_uri = request.META['HTTP_REFERER']
+        qid = kwargs['question_id']
+        action = kwargs['action']
+        refer_url = request.META.get('HTTP_REFERER')
         try:
-            qid = kwargs['question_id']
-            action = kwargs['action']
-            redirect_uri = '/question/{0}/'.format(qid)
-
-            question = Question.objects.filter(id=int(qid))
+            qid = int(qid)
+        except TypeError:
+            raise Http404()
+        try:
+            question_queryset = Question.objects.filter(id=qid)
 
             if action == 'answer':
-                self._answer(request, question)
+                return self._answer(request, question_queryset, refer_url)
             elif action == 'edit':
-                self._edit(request, question)
+                return self._edit(request, question_queryset, refer_url)
             elif action == 'comment':
-                self._comment(request, question)
+                return self._comment(request, question_queryset, refer_url)
             elif action == 'append':
-                self._append(request, question)
+                return self._append(request, question_queryset, refer_url)
             elif action == 'delete':
-                redirect_uri = '/'
-                self._delete(request, question)
+                return self._delete(request, question_queryset)
             elif action == 'upvote':
-                self._vote(request, question)
+                return self._vote(request, question_queryset)
             elif action == 'downvote':
-                self._vote(request, question, False)
-            return redirect(redirect_uri)
-        except InvalidFieldError as e:
-            msgs = e.messages
-            for msg in msgs:
-                messages.error(request, msg)
-            return redirect(err_redirect_uri)
+                return self._vote(request, question_queryset, False)
         except Exception as e:
-            print(e)
-            message = 'Error'
-            messages.error(request, message)
-            return redirect(err_redirect_uri)
+            messages.error(request, str(e))
+            return redirect(refer_url)
 
-    def _edit(self, request, question):
-        title = request.POST['title']
-        content = request.POST['content']
-        tags = request.POST['tags']
-        err_msgs = []
-        if not title:
-            err_msgs.append('No title')
-        if not content:
-            err_msgs.append('No content')
-        if err_msgs:
-            raise InvalidFieldError(messages=err_msgs)
-        if request.user != question[0].author:
-            raise Exception('Unauthorized action')
-        question.update(
-            title=title, content=content, updated_time=timezone.now())
-        if tags:
-            tags_list = parse_listed_strs(tags)
-            stored_tags = set(
-                question[0].tag_set.values_list('name', flat=True))
-            inter = tags_list & stored_tags
-            to_del = stored_tags - inter
-            to_add = tags_list - inter
-            for name in to_del:
-                Tag.objects.filter(name=name, question=question[0]).delete()
-            for name in to_add:
-                Tag.objects.create(name=name, question=question[0]).save()
+    def _edit(self, request, question_queryset, refer_url):
+        """Edit a question by its author
+        """
+        title = request.POST.get('title')
+        content = request.POST.get('content')
+        tags = request.POST.get('tags')
+        form = EditQuestionForm(request.POST)
 
-    def _comment(self, request, question):
-        content = request.POST['question_comment']
-        err_msgs = []
-        if not content:
-            err_msgs.append('No content')
-        if err_msgs:
-            raise InvalidFieldError(messages=err_msgs)
-        comment = QuestionComment.objects.create(question=question[0],
-                                                 user=request.user,
-                                                 content=content)
-        comment.save()
-
-    def _append(self, request, question):
-        content = request.POST['question_append']
-        err_msgs = []
-        if not content:
-            err_msgs.append('No content')
-        if request.user != question[0].author:
-            raise Exception('Unauthorized action')
-        if err_msgs:
-            raise InvalidFieldError(messages=err_msgs)
-        append = QuestionAppend.objects.create(question=question[0],
-                                               content=content)
-        append.save()
-
-    def _delete(self, request, question):
-        if request.user != question[0].author:
-            raise Exception('Unauthorized action')
-        question.delete()
-
-    def _vote(self, request, question, up=True):
-        user = request.user
-        voted = QuestionVote.objects.filter(question=question[0], user=user)
-        if voted:
-            if voted[0].vote_type != up:
-                voted.delete()
+        if form.is_valid():
+            question = question_queryset[0]
+            if request.user != question.author:
+                return HttpResponse(status=401)
+            question_queryset.update(
+                title=title, content=content, updated_time=timezone.now())
+            if tags:
+                tags_list = parse_listed_strs(tags)
+                stored_tags = set(
+                    question.tag_set.values_list('name', flat=True))
+                inter = tags_list & stored_tags
+                to_del = stored_tags - inter
+                to_add = tags_list - inter
+                for name in to_del:
+                    Tag.objects.filter(name=name, question=question).delete()
+                for name in to_add:
+                    Tag.objects.create(name=name, question=question).save()
+            redirect_uri = '/question/{0}/'.format(question.id)
+            return redirect(redirect_uri)
         else:
-            vote = QuestionVote.objects.create(
-                question=question[0], user=user, vote_type=up)
-            vote.save()
+            return form_errors_handler(request, form, refer_url)
 
-    def _answer(self, request, question):
-        content = request.POST['answer_content']
-        err_msgs = []
-        if not content:
-            err_msgs.append('No content')
-        if err_msgs:
-            raise InvalidFieldError(messages=err_msgs)
-        # User is allowed to answer their questions
-        # if request.user == question[0].author:
-        # raise Exception('Unauthorized action')
-        answer = Answer.objects.create(content=content,
-                                       question=question[0],
-                                       author=request.user)
-        answer.save()
+    def _comment(self, request, question_queryset, refer_url):
+        """Comment a question by users
+        """
+        content = request.POST.get('question_comment_content')
+        form = CommentQuestionForm(request.POST)
+        if form.is_valid():
+            question = question_queryset[0]
+            comment = QuestionComment.objects.create(question=question,
+                                                     user=request.user,
+                                                     content=content)
+            comment.save()
+            redirect_uri = '/question/{0}/'.format(question.id)
+            return redirect(redirect_uri)
+        else:
+            return form_errors_handler(request, form, refer_url)
+
+    def _append(self, request, question_queryset, refer_url):
+        """Append a item for the question by its author
+        """
+        content = request.POST['question_append_content']
+        form = AppendQuestionForm(request.POST)
+        if form.is_valid():
+            question = question_queryset[0]
+            if request.user != question.author:
+                return HttpResponse(status=401)
+            append = QuestionAppend.objects.create(question=question,
+                                                   content=content)
+            append.save()
+            redirect_uri = '/question/{0}/'.format(question.id)
+            return redirect(redirect_uri)
+        else:
+            return form_errors_handler(request, form, refer_url)
+
+    def _delete(self, request, question_queryset):
+        """Delete a question by its author
+        """
+        if request.user != question_queryset[0].author:
+            return HttpResponse(status=401)
+        question_queryset.delete()
+        return redirect('/')
+
+    def _vote(self, request, question_queryset, up=True):
+        """vote down or vote up for a question
+        the author cannot vote
+        """
+        user = request.user
+        question = question_queryset[0]
+        voted = QuestionVote.objects.filter(question=question, user=user)
+        if user != question.author:
+            if voted:
+                if voted[0].vote_type != up:
+                    voted.delete()
+            else:
+                vote = QuestionVote.objects.create(
+                    question=question, user=user, vote_type=up)
+                vote.save()
+        redirect_uri = '/question/{0}/'.format(question.id)
+        return redirect(redirect_uri)
+
+    def _answer(self, request, question_queryset, refer_url):
+        """Answer a question by users
+        """
+        content = request.POST.get('answer_content')
+        form = AnswerForm(request.POST)
+        if form.is_valid():
+            question = question_queryset[0]
+            answer = Answer.objects.create(content=content,
+                                           question=question,
+                                           author=request.user)
+            answer.save()
+            redirect_uri = '/question/{0}/'.format(question.id)
+            return redirect(redirect_uri)
+        else:
+            return form_errors_handler(request, form, refer_url)
 
 
 class AskQuestionView(View):
 
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
+        """Ask question page.
         """
-        Render ask_question page.
-        """
-        return render(request, 'qa/ask_question.html')
+        form = AskQuestionForm()
+        return render(request, 'qa/ask_question.html', {'form': form})
 
     @method_decorator(login_required)
     def post(self, request, *args, **kwargs):
+        """Add a new question
+        if success redirect to the new question's page
+        otherwise return error meesages
         """
-        Create a new question.
-        """
+        title = request.POST.get('title')
+        content = request.POST.get('content')
+        tags = request.POST.get('tags')
+        user = request.user
+        refer_url = request.META.get('HTTP_REFERER')
+        form = AskQuestionForm(request.POST)
 
-        try:
-            title = request.POST['title']
-            content = request.POST['content']
-            tags = request.POST['tags']
-            user = request.user
-            err_msgs = []
-            if not title:
-                err_msgs.append('No title')
-            if not content:
-                err_msgs.append('No content')
-            if err_msgs:
-                raise InvalidFieldError(messages=err_msgs)
-            question = Question.objects.create(
-                title=title, content=content, author=user)
-            question.save()
-            if tags:
-                tags_list = parse_listed_strs(tags)
-                for name in tags_list:
-                    tag = Tag.objects.create(name=name, question=question)
-                    tag.save()
-            return redirect('/question/{0}/'.format(question.id))
-        except InvalidFieldError as e:
-            msgs = e.messages
-            for msg in msgs:
-                messages.error(request, msg)
-            return redirect('/question/ask/')
-        except Exception as e:
-            print(e)
-            message = 'Error'
-            messages.error(request, message)
-            return redirect('/question/ask/')
+        if form.is_valid():
+            try:
+                question = Question.objects.create(
+                    title=title, content=content, author=user)
+                question.save()
+                if tags:
+                    tags_list = parse_listed_strs(tags)
+                    for name in tags_list:
+                        tag = Tag.objects.create(name=name, question=question)
+                        tag.save()
+                return redirect('/question/{0}/'.format(question.id))
+            except Exception as e:
+                messages.error(request, e)
+                return redirect(refer_url)
+        else:
+            return form_errors_handler(request, form, refer_url)
 
 
 class AnswerActionView(View):

@@ -6,31 +6,34 @@ Edit {{ question.title }}
 
 
 {% block content %}
-{% if messages %}
-<ul>
-    {% for message in messages %}
-        <li>{{ message }}</li>
-    {% endfor %}
-</ul>
-{% endif %}
-<form action="/question/{{ question.id }}/edit/" method="post">
-{% csrf_token %}
-    <p>
-        <label for="">Title:</label>
-        <input type="text" name="title" value="{{ question.title }}"/>
-    </p>
-    <p>
-        <label for="">Content:</label>
-        <textarea name="content" cols="30" rows="10">{{ question.content }}</textarea>
-    </p>
-    <p>
-        <label for="tags">Tags:</label>
-        <input type="text" name="tags" value="{% for tag in question.tags %} {{ tag.name }}, {% endfor %}"/>
-    </p>
-    <p><button type="submit">Submit</button></p>
-
-</form>
-
+{% load widget_tweaks %}
+<div class="row">
+    <div class="col-md-12">
+        <h2>Edit {{ question.name }}</h2>
+    {% if messages %}
+        {% for message in messages %}
+            <p class="text-danger">{{ message }}</p>
+        {% endfor %}
+    {% endif %}
+        <form role="form" method="POST" action="/question/{{ question.id }}/edit/" class="form-horizontal">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}" />
+        {% for field in form %}
+            <div class="form-group">
+                <label for="{{ field.id_for_label }}" class="col-sm-2 control-label">{{ field.label }}</label>
+                <div class="col-sm-6">
+                    {{ field|add_class:"form-control" }}
+                </div>
+            </div>
+        {% endfor %}
+            <div class="form-group">
+                <div class="col-sm-offset-2 col-sm-6">
+                  <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}
 
 

@@ -5,6 +5,7 @@
 {% endblock %}
 
 {% block content %}
+{% load widget_tweaks %}
 {% if messages %}
     <ul>
         {% for message in messages %}
@@ -54,11 +55,22 @@
         </ul>        
     </p>
     <p>
-        <form action="/question/{{ question.id }}/append/" method="POST">
-        {% csrf_token %}
-            <textarea name="question_append" id="" cols="30" rows="3"></textarea>
-            <button type="submit">Append</button>
-        </form>
+        <form role="form" method="POST" action="/question/{{ question.id }}/append/" class="form-horizontal">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}" />
+        {% for field in question_append_form %}
+            <div class="form-group">
+                <div class="col-sm-6">
+                    {{ field|add_class:"form-control" }}
+                </div>
+            </div>
+        {% endfor %}
+            <div class="form-group">
+                <div class="col-sm-6">
+                  <button type="submit" class="btn btn-primary">Append</button>
+                </div>
+            </div>
+        </form>        
     </p>
     <h3>Comments</h3>
     <p>
@@ -71,10 +83,21 @@
         </ul>
     </p>
     <p>
-        <form action="/question/{{ question.id }}/comment/" method="POST">
-        {% csrf_token %}
-            <textarea name="question_comment" id="" cols="30" rows="3"></textarea>
-            <button type="submit">Submit</button>
+        <form role="form" method="POST" action="/question/{{ question.id }}/comment/" class="form-horizontal">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}" />
+        {% for field in question_comment_form %}
+            <div class="form-group">
+                <div class="col-sm-6">
+                    {{ field|add_class:"form-control" }}
+                </div>
+            </div>
+        {% endfor %}
+            <div class="form-group">
+                <div class="col-sm-6">
+                  <button type="submit" class="btn btn-primary">Comment</button>
+                </div>
+            </div>
         </form>
     </p>
     <h3>Answer</h3>
@@ -145,12 +168,21 @@
 
     </ul>
     <div>
-        <form action="/question/{{ question.id }}/answer/" method="POST">
+        <form role="form" method="POST" action="/question/{{ question.id }}/answer/" class="form-horizontal">
             {% csrf_token %}
-            <p><textarea name="answer_content" id="" cols="30" rows="5"></textarea></p>
-            <p>
-                <button type="submit">Submit</button>
-            </p>
+            <input type="hidden" name="next" value="{{ next }}" />
+        {% for field in answer_form %}
+            <div class="form-group">
+                <div class="col-sm-6">
+                    {{ field|add_class:"form-control" }}
+                </div>
+            </div>
+        {% endfor %}
+            <div class="form-group">
+                <div class="col-sm-6">
+                  <button type="submit" class="btn btn-primary">Answer</button>
+                </div>
+            </div>
         </form>
     </div>
 {% endblock %}

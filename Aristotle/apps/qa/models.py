@@ -108,6 +108,9 @@ class Question(models.Model):
     def _get_hits_count(self):
         return self.questionhit_set.all().count()
 
+    def get_tags(self):
+        return self.tag_set.all()
+
     votes_count = property(_get_votes_count)
     answers_count = property(_get_answers_count)
     hits_count = property(_get_hits_count)

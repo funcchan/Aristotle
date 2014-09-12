@@ -2,32 +2,40 @@
 {% block title %} User Profile {% endblock %}
 
 {% block content %}
-<h2>{{ user.username }}'s Profile</h2>
-<div>
-    <a href="./edit">Edit</a> | <a href="./avatar/">Edit Avatar</a> | <a href="./account">Edit Account</a>
-</div>
-<div>
-    <p>{{ user.first_name }} {{ user.last_name }}</p>
-    <p>{{ user.email }}</p>
-    <p>{{ user.member.gender }}</p>
-    <p>{{ user.member.age }}</p>
-    <p>{{ user.member.address }}</p>
-    <p>{{ user.member.website }}</p>
-    <h2>Asked these questions</h2>
-    <ul>
-        {% for question in questions %}
+<div class="row">
+    <div class="col-md-12">
+        <h2>{{ user.username }}'s Profile</h2>
+        <div>
+            <a href="./edit">Edit</a> | 
+            <a href="./avatar/">Edit Avatar</a> | 
+            <a href="./account">Edit Account</a>
+        </div>      
+        <p>{{ user.first_name }} {{ user.last_name }}</p>
+        <p>{{ user.email }}</p>
+        <p>{{ user.member.gender }}</p>
+        <p>{{ user.member.age }}</p>
+        <p>{{ user.member.address }}</p>
+        <p>{{ user.member.website }}</p>        
+    </div>
+    <div class="col-md-12">
+        <h3>{{ user.username }} asked these questions</h3>
+        <ul>
+            {% for question in questions %}
+                <li>
+                    <a href="/question/{{ question.id }}/">{{ question.title }}</a>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div class="col-md-12">
+        <h3>{{ user.username }} answered these questions</h3>
+        <ul>
+            {% for answer in answers %}
             <li>
-                <a href="/question/{{ question.id }}/">{{ question.title }}</a>
+                <a href="/question/{{ answer.question.id }}/#{{ answer.id }}">{{ answer.question.title }}</a>
             </li>
-        {% endfor %}
-    </ul>
-    <h2>Answered these questions</h2>
-    <ul>
-        {% for answer in answers %}
-        <li>
-            <a href="/question/{{ answer.question.id }}/#{{ answer.id }}">{{ answer.question.title }}</a>
-        </li>
-        {% endfor %}
-    </ul>
+            {% endfor %}
+        </ul>
+    </div>
 </div>
 {% endblock %}

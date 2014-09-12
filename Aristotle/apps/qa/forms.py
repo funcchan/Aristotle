@@ -90,3 +90,27 @@ class EditAccountForm(forms.Form):
 
 class EditAvatarForm(forms.Form):
     avatar = forms.FileField(label='Avatar')
+
+
+class AskQuestionForm(forms.Form):
+    title = forms.CharField(label='Title', max_length=255)
+    content = forms.CharField(label='Content', widget=forms.Textarea)
+    tags = forms.CharField(label='Tags', required=False)
+
+
+class EditQuestionForm(forms.Form):
+    title = forms.CharField(label='Title', max_length=255)
+    content = forms.CharField(label='Content', widget=forms.Textarea)
+    tags = forms.CharField(label='Tags', required=False)
+
+
+class CommentQuestionForm(forms.Form):
+    question_comment_content = forms.CharField(widget=forms.Textarea)
+
+
+class AppendQuestionForm(forms.Form):
+    question_append_content = forms.CharField(widget=forms.Textarea)
+
+
+class AnswerForm(forms.Form):
+    answer_content = forms.CharField(widget=forms.Textarea)
