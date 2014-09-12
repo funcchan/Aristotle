@@ -486,64 +486,93 @@ class QuestionView(View):
         qid = kwargs['question_id']
 
         try:
+            qid = int(qid)
+        except TypeError:
+            raise Http404()
 
-            question = Question.objects.filter(id=int(qid))
+        question_queryset = Question.objects.filter(id=qid)
+
+        if not question_queryset:
+            raise Http404()
+
+        try:
             # store session for anonymous users
+            question = question_queryset[0]
             if hasattr(request, 'session') and not request.session.session_key:
                 request.session.save()
             session = request.session.session_key
             hitted = QuestionHit.objects.filter(
-                question=question[0], session=session)
+                question=question, session=session)
             if not hitted:
                 ip = request.META['REMOTE_ADDR']
-                hit = QuestionHit.objects.create(question=question[0],
+                hit = QuestionHit.objects.create(question=question,
                                                  ip=ip,
                                                  session=session)
                 hit.save()
-            qcomment_qs = QuestionComment.objects.order_by(
-                'created_time')
-            qappend_qs = QuestionAppend.objects.order_by(
-                'created_time')
-            qvoteup_qs = QuestionVote.objects.order_by(
-                'created_time').filter(vote_type=True)
-            qvotedown_qs = QuestionVote.objects.order_by(
-                'created_time').filter(vote_type=False)
-            qtags_qs = Tag.objects.all()
-            question = question.prefetch_related(
-                Prefetch('questioncomment_set',
-                         queryset=qcomment_qs, to_attr='comments'),
-                Prefetch('questionappend_set',
-                         queryset=qappend_qs, to_attr='appends'),
-                Prefetch('questionvote_set',
-                         queryset=qvoteup_qs, to_attr='upvotes'),
-                Prefetch('questionvote_set',
-                         queryset=qvotedown_qs, to_attr='downvotes'),
-                Prefetch('tag_set', queryset=qtags_qs, to_attr='tags'))
+            # select comments, appends, votes, tags for the question
 
-            # TODO Limiting the number of comments
-            acomment_qs = AnswerComment.objects.order_by(
+            # comments limits
+            question_comments_queryset = QuestionComment.objects.order_by(
                 'created_time')
-            aappend_qs = AnswerAppend.objects.order_by('created_time')
-            avoteup_qs = AnswerVote.objects.order_by(
-                'created_time').filter(vote_type=True)
-            avotedown_qs = AnswerVote.objects.order_by(
-                'created_time').filter(vote_type=False)
-            answers = Answer.objects.order_by('created_time').filter(
-                question=question[0])
+            question_appends_queryset = QuestionAppend.objects.order_by(
+                'created_time')
+            question_voteups_queryset = QuestionVote.objects.order_by(
+                '-created_time').filter(vote_type=True)
+            question_votedowns_queryset = QuestionVote.objects.order_by(
+                '-created_time').filter(vote_type=False)
+            question_tags_queryset = Tag.objects.all()
+            question_queryset = question_queryset.prefetch_related(
+                Prefetch('questioncomment_set',
+                         queryset=question_comments_queryset,
+                         to_attr='comments'),
+                Prefetch('questionappend_set',
+                         queryset=question_appends_queryset,
+                         to_attr='appends'),
+                Prefetch('questionvote_set',
+                         queryset=question_voteups_queryset,
+                         to_attr='upvotes'),
+                Prefetch('questionvote_set',
+                         queryset=question_votedowns_queryset,
+                         to_attr='downvotes'),
+                Prefetch('tag_set',
+                         queryset=question_tags_queryset,
+                         to_attr='tags'))
+
+            question = question_queryset[0]
+            # TODO Limiting the number of comments
+            answer_comments_queryset = AnswerComment.objects.order_by(
+                'created_time')
+            answer_appends_queryset = AnswerAppend.objects.order_by(
+                'created_time')
+            answer_upvotes_queryset = AnswerVote.objects.order_by(
+                '-created_time').filter(vote_type=True)
+            answer_downvotes_queryset = AnswerVote.objects.order_by(
+                '-created_time').filter(vote_type=False)
+
+            # answer limits
+            answers = Answer.objects.filter(
+                question=question)
             answers = answers.prefetch_related(
                 Prefetch('answercomment_set',
-                         queryset=acomment_qs, to_attr='comments'),
+                         queryset=answer_comments_queryset,
+                         to_attr='comments'),
                 Prefetch('answervote_set',
-                         queryset=avoteup_qs, to_attr='upvotes'),
+                         queryset=answer_upvotes_queryset,
+                         to_attr='upvotes'),
                 Prefetch('answervote_set',
-                         queryset=avotedown_qs, to_attr='downvotes'),
+                         queryset=answer_downvotes_queryset,
+                         to_attr='downvotes'),
                 Prefetch('answerappend_set',
-                         queryset=aappend_qs, to_attr='appends'))
+                         queryset=answer_appends_queryset,
+                         to_attr='appends'))
+            answers = sorted(answers, key=lambda i: (
+                i.accepted, i.abs_votes_count, i.created_time),
+                reverse=True)
             question_comment_form = CommentQuestionForm()
             question_append_form = AppendQuestionForm()
             answer_form = AnswerForm()
             data = {
-                'question': question[0],
+                'question': question,
                 'answers': answers,
                 'answer_form': answer_form,
                 'question_comment_form': question_comment_form,
@@ -553,7 +582,7 @@ class QuestionView(View):
             return render(request, 'qa/question.html', data)
         except Exception as e:
             print(e)
-            raise Http404
+            return HttpResponse(status=500)
 
 
 class QuestionsView(View):

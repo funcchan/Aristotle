@@ -153,6 +153,17 @@ class Answer(models.Model):
     updated_time = models.DateTimeField(blank=True, null=True)
     created_time = models.DateTimeField(default=timezone.now())
 
+    def _get_votes_count(self):
+        return self.answervote_set.all().count()
+
+    def _get_abs_votes_count(self):
+        ups = self.answervote_set.filter(vote_type=True).count()
+        downs = self.votes_count - ups
+        return ups - downs
+
+    votes_count = property(_get_votes_count)
+    abs_votes_count = property(_get_abs_votes_count)
+
 
 class AnswerAppend(models.Model):
     answer = models.ForeignKey(Answer)
