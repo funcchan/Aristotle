@@ -1,23 +1,38 @@
 {% extends "qa/base.html" %}
 
-{% block title %}Reset your account{% endblock %}
+{% block title %}Reset password{% endblock %}
 
 {% block content %}
-{% if messages %}
-<ul>
-    {% for message in messages %}
-        <li>{{ message }}</li>
-    {% endfor %}
-</ul>
-{% endif %}
-<form method="POST" action="/reset/">
-{% csrf_token %}
-    <p>
-        <label>Email:</label>
-        <input type="email" name="email" />
-    </p>
-    <p>
-        <button type="submit">Submit</button>
-    </p>
-</form>
+{% load widget_tweaks %}
+<div class="row">
+    <div class="col-md-8">
+        <h2>Reset password</h2>
+    {% if messages %}
+        {% for message in messages %}
+            {% if message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}
+            <p class="text-danger">{{ message }}</p>
+            {% elif message.level == DEFAULT_MESSAGE_LEVELS.SUCCESS %}
+            <p class="text-success">{{ message }}</p>
+            {% endif %}
+            
+        {% endfor %}
+    {% endif %}
+        <form role="form" method="POST" action="{% url "reset" %}" class="form-horizontal">
+            {% csrf_token %}
+        {% for field in form %}
+            <div class="form-group">
+                <label for="{{ field.id_for_label }}" class="col-sm-2 control-label">{{ field.label_tag }}</label>
+                <div class="col-sm-6">
+                    {{ field|add_class:"form-control" }}
+                </div>
+            </div>
+        {% endfor %}
+            <div class="form-group">
+                <div class="col-sm-offset-2 col-sm-2">
+                  <button type="submit" class="btn btn-primary">Submit</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}

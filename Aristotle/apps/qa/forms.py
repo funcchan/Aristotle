@@ -28,3 +28,22 @@ class SignUpForm(forms.Form):
         if password and repassword and password != repassword:
             msg = 'passwords are not identical'
             self.add_error('repassword', msg)
+
+
+class ResetForm(forms.Form):
+    email = forms.EmailField(label='Email')
+
+
+class ResetPasswordForm(forms.Form):
+    password = forms.CharField(label='Password', widget=forms.PasswordInput)
+    repassword = forms.CharField(
+        label='Repeat password', widget=forms.PasswordInput)
+
+    def clean(self):
+        cleaned_data = super(ResetPasswordForm, self).clean()
+        password = cleaned_data.get('password')
+        repassword = cleaned_data.get("repassword")
+
+        if password and repassword and password != repassword:
+            msg = 'passwords are not identical'
+            self.add_error('repassword', msg)

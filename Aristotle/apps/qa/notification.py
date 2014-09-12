@@ -44,8 +44,11 @@ class EmailNotification(object):
         to_email = self.user.email
         try:
             code = create_unique_code()
-            ResetPassword.objects.create(user=self.user, code=code).save()
             message += 'http://127.0.0.1:8001/reset/%s' % code
+            reset = ResetPassword.objects.get(user=self.user)
+            if reset:
+                reset.delete()
+            ResetPassword.objects.create(user=self.user, code=code).save()
             send_mail(subject, message, from_email, [to_email, ])
         except BadHeaderError:
             # log the debug information

@@ -25,9 +25,18 @@ from models import AnswerAppend
 from models import Member, Activation
 from models import Tag, ResetPassword
 from forms import SignInForm, SignUpForm
+from forms import ResetForm, ResetPasswordForm
 from notification import EmailNotification
 from errors import InvalidFieldError
 from utils import parse_listed_strs
+
+
+def form_errors_handler(request, form, refer_url):
+    for field, errors in form.errors.items():
+        for error in errors:
+            msg = '%s: %s' % (field, error)
+            messages.error(request, msg)
+    return redirect(refer_url)
 
 
 class HomeView(View):
@@ -58,13 +67,6 @@ class SignInView(View):
         """login action
         using django form to verify the form (username and password)
         using django auth and user model to login
-        if the form is valid:
-            if login is valid:
-                redirect to previous visiting page or home page
-            otherwise:
-                redirect to login page and show error messages
-        otherwise:
-            redirect to login page show error messages
         """
         form = SignInForm(request.POST)
         next_url = request.POST.get('next')
@@ -83,11 +85,7 @@ class SignInView(View):
                 messages.error(request, msg)
                 return redirect(refer_url)
         else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    msg = '%s: %s' % (field, error)
-                    messages.error(request, msg)
-            return redirect(refer_url)
+            return form_errors_handler(request, form, refer_url)
 
 
 class SignUpView(View):
@@ -132,81 +130,118 @@ class SignUpView(View):
                 messages.error(request, str(e))
                 return redirect(refer_url)
         else:
-            for field, errors in form.errors.items():
-                for error in errors:
-                    msg = '%s: %s' % (field, error)
-                    messages.error(request, msg)
-            return redirect(refer_url)
+            return form_errors_handler(request, form, refer_url)
 
 
 class ActivateView(View):
 
     def get(self, request, *args, **kwargs):
-        """ Active user's account with a random code
+        """Active user's account with a random code
+        To verify the activation code, query from the
+        Activation table with the code in URL
+        if the code is valid (exists and not expire)
+        then render the activation page
+        otherwise send error messages
         """
-        try:
-
+        if kwargs and 'activation_code' in kwargs:
             code = kwargs['activation_code']
-
-            result = Activation.objects.get(code=code)
-            if result:
-                if not result.is_active and result.expire_time > timezone.now():
+            try:
+                result = Activation.objects.get(code=code)
+                valid = not result.is_active
+                valid = valid and result.expire_time > timezone.now()
+                if valid:
                     result.is_active = True
                     result.save()
-                    return render(request, 'qa/activation.html')
+                    return render(request, 'qa/activation.html',
+                                  {'valid': valid})
                 else:
-                    raise Exception('Expired code')
-            else:
-                raise Exception('No such code')
-        except Exception:
-            raise Http404()
+                    msg = 'The activation code has expired'
+                    raise Exception(msg)
+            except Exception as e:
+                messages.error(request, str(e))
+                # TODO
+                # we need another page to show errors
+                return redirect('/activate/')
+        else:
+            return render(request, 'qa/activation.html')
 
 
 class ResetPasswordView(View):
 
     def get(self, request, *args, **kwargs):
+        """Reset password
+        reset.html is to ask user to input his/her email address
+        reset_password.html is to set a new password with a random
+        code sent to the user's email account
+        if the code does not exist or has expired,
+        then raise http 404
+        """
         if kwargs and 'reset_code' in kwargs:
             code = kwargs['reset_code']
-            return render(request, 'qa/reset_password.html', {'code': code})
+            result = ResetPassword.objects.filter(code=code)
+            if not result or result[0].expire_time < timezone.now():
+                raise Http404()
+            form = ResetPasswordForm()
+            return render(request, 'qa/reset_password.html',
+                          {'form': form, 'code': code})
         else:
-            return render(request, 'qa/reset.html')
+            form = ResetForm()
+            return render(request, 'qa/reset.html', {'form': form})
 
     def post(self, request, *args, **kwargs):
+        """Reset password actions
+        reset: accept email address then send an email with a random
+        link (it has expire time, 10mins). It will delete an existed
+        code, may cause some safty issues
+
+        User clicks the link and goes to reset_password page, input
+        the new password twice to update.Only valid code can be used
+        to update a user's password. After updating the password, the
+        code will be deleted.
+        """
+        refer_url = request.META.get('HTTP_REFERER')
         try:
             if kwargs and 'reset_code' in kwargs:
-                password = request.POST.get('password')
-                repassword = request.POST.get('repassword')
                 code = kwargs['reset_code']
-                # TODO verfiy password
-                if password != repassword:
-                    raise Http404()
-                result = ResetPassword.objects.get(code=code)
-                if result:
+                password = request.POST.get('password')
+                form = ResetPasswordForm(request.POST)
+                if form.is_valid():
+                    result = ResetPassword.objects.get(code=code)
                     if result.expire_time > timezone.now():
                         result.user.set_password(password)
                         result.user.save()
+                        result.delete()
                         return redirect('/signin/')
                     else:
-                        raise Exception('Expired code')
+                        msg = 'The code has expired'
+                        raise Exception(msg)
                 else:
-                    raise Exception('No such code')
+                    return form_errors_handler(request, form, refer_url)
             else:
                 email = request.POST.get('email')
-                user = User.objects.get(email=email)
-                # try to catch errors
-                EmailNotification(user).send_reset_password()
-                return redirect('/reset/')
+                form = ResetForm(request.POST)
+                if form.is_valid():
+                    user = User.objects.get(email=email)
+                    # TODO Email queue
+                    EmailNotification(user).send_reset_password()
+                    msg = 'please check your email to retrieve a reset link'
+                    messages.success(request, msg)
+                    return redirect('/reset/')
+                else:
+                    return form_errors_handler(request, form, refer_url)
         except Exception as e:
-            print(e)
-            raise Http404()
+            messages.error(request, str(e))
+            return redirect(refer_url)
 
 
 class SignOutView(View):
 
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
+        """logout using django auth
+        """
         logout(request)
-        return redirect('/signin')
+        return redirect('/signin/')
 
 
 class ProfileView(View):
