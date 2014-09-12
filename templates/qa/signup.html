@@ -3,32 +3,31 @@
 {% block title %}Sign Up{% endblock %}
 
 {% block content %}
-{% if messages %}
-<ul>
-    {% for message in messages %}
-        <li>{{ message }}</li>
-    {% endfor %}
-</ul>
-{% endif %}
-<form method="POST" action="/signup/">{% csrf_token %}
-    <p>
-        <label>Username:</label>
-        <input type="text" name="username" />
-    </p>
-    <p>
-        <label>Email:</label>
-        <input type="email" name="email" />
-    </p>
-    <p>
-        <label>Password:</label>
-        <input type="password" name="password" />
-    </p>
-    <p>
-        <label>Repeat Password:</label>
-        <input type="password" name="repassword" />
-    </p>
-    <p>
-        <button type="submit">Sign Up</button>
-    </p>
-</form>
+{% load widget_tweaks %}
+<div class="row">
+    <div class="col-md-8">
+        <h2>Sign up</h2>
+    {% if messages %}
+        {% for message in messages %}
+            <p class="text-danger">{{ message }}</p>
+        {% endfor %}
+    {% endif %}
+        <form role="form" method="POST" action="{% url "signup" %}" class="form-horizontal">
+            {% csrf_token %}
+        {% for field in form %}
+            <div class="form-group">
+                <label for="{{ field.id_for_label }}" class="col-sm-2 control-label">{{ field.label_tag }}</label>
+                <div class="col-sm-6">
+                    {{ field|add_class:"form-control" }}
+                </div>
+            </div>
+        {% endfor %}
+            <div class="form-group">
+                <div class="col-sm-offset-2 col-sm-2">
+                  <button type="submit" class="btn btn-primary">Sign up</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}

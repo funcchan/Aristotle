@@ -24,12 +24,14 @@ from models import AnswerComment, AnswerVote
 from models import AnswerAppend
 from models import Member, Activation
 from models import Tag, ResetPassword
+from forms import SignInForm, SignUpForm
 from notification import EmailNotification
 from errors import InvalidFieldError
 from utils import parse_listed_strs
 
 
 class HomeView(View):
+
     def get(self, request, *args, **kwargs):
         """test
         """
@@ -39,87 +41,106 @@ class HomeView(View):
 
 
 class SignInView(View):
+
     def get(self, request, *args, **kwargs):
-        # TODO: Check the session
+        """render login page
+        if user has logged in, redirect back to referer page or home page
         """
-        Verify the session.
-            - If already login, redirect to the home page.
-        :param request:
-        :param args:
-        :param kwargs:
-        :return:
-        """
-        return render(request, 'qa/signin.html')
+        if request.user.is_authenticated():
+            ref = request.META.get('HTTP_REFERER')
+            return redirect(ref or '/')
+        form = SignInForm()
+        next_url = request.GET.get('next')
+        return render(request, 'qa/signin.html',
+                      {'form': form, 'next': next_url or ''})
 
     def post(self, request, *args, **kwargs):
-        username = request.POST['username']
-        password = request.POST['password']
-        user = authenticate(username=username, password=password)
-        if user:
-            ip = request.META['REMOTE_ADDR']
-            login(request, user)
-            Member.objects.filter(user=user).update(last_login_ip=ip)
-            return redirect('/')
+        """login action
+        using django form to verify the form (username and password)
+        using django auth and user model to login
+        if the form is valid:
+            if login is valid:
+                redirect to previous visiting page or home page
+            otherwise:
+                redirect to login page and show error messages
+        otherwise:
+            redirect to login page show error messages
+        """
+        form = SignInForm(request.POST)
+        next_url = request.POST.get('next')
+        refer_url = request.META.get('HTTP_REFERER')
+        if form.is_valid():
+            username = request.POST.get('username')
+            password = request.POST.get('password')
+            user = authenticate(username=username, password=password)
+            if user:
+                ip = request.META['REMOTE_ADDR']
+                login(request, user)
+                Member.objects.filter(user=user).update(last_login_ip=ip)
+                return redirect(next_url or '/')
+            else:
+                msg = 'username or password is not correct'
+                messages.error(request, msg)
+                return redirect(refer_url)
         else:
-            msg = 'Username or password is not correct'
-            messages.error(request, msg)
-            return redirect('/signin')
+            for field, errors in form.errors.items():
+                for error in errors:
+                    msg = '%s: %s' % (field, error)
+                    messages.error(request, msg)
+            return redirect(refer_url)
 
 
 class SignUpView(View):
+
     def get(self, request, *args, **kwargs):
-        # TODO: Check the session
+        """render sign up page
+        if user has logged in, redirect back to referer page or home page
         """
-        Verify the session.
-            - If already login, redirect to the home page.
-        :param request:
-        :param args:
-        :param kwargs:
-        :return:
-        """
-        return render(request, 'qa/signup.html')
+        if request.user.is_authenticated():
+            ref = request.META.get('HTTP_REFERER')
+            return redirect(ref or '/')
+        form = SignUpForm()
+        return render(request, 'qa/signup.html', {'form': form})
 
     def post(self, request, *args, **kwargs):
+        """sign up action
+        verify the form by django model
+        if the form is valid, then add a new user,
+        an activation code and send an email notification
+        to user's email
+        Any error happens, redirect to the refer url with
+        flash messages
+        """
+        form = SignUpForm(request.POST)
+        refer_url = request.META.get('HTTP_REFERER')
         username = request.POST.get('username')
         email = request.POST.get('email')
         password = request.POST.get('password')
-        repassword = request.POST.get('repassword')
-        err_msgs = []
-        if not username:
-            err_msgs.append('Username is required')
-        if not email:
-            err_msgs.append('Email is required')
-        if not password or not repassword:
-            err_msgs.append('Passwords are required')
-        if password != repassword:
-            err_msgs.append('Two passwords are not identical')
-        try:
-            if err_msgs:
-                raise InvalidFieldError(messages=err_msgs)
-            user = User.objects.create_user(
-                username=username, email=email,
-                password=password)
-            user.save()
-            Member.objects.create(user=user).save()
-            Activation.objects.create(user=user).save()
-            # only for testing
-            # TODO handle emails concurrently (async queue)
-            EmailNotification(user).send_verfication()
-            return redirect('/signin')
-
-        except InvalidFieldError as e:
-            msgs = e.messages
-            for msg in msgs:
-                messages.error(request, msg)
-            return redirect('/signup')
-        except Exception as e:
-            print(e)
-            message = 'Error'
-            messages.error(request, message)
-            return redirect('/signup')
+        if form.is_valid():
+            try:
+                user = User.objects.create_user(
+                    username=username, email=email,
+                    password=password)
+                user.save()
+                Member.objects.create(user=user).save()
+                Activation.objects.create(user=user).save()
+                # only for testing
+                # TODO handle emails concurrently (async queue)
+                EmailNotification(user).send_verfication()
+                return redirect('/signin/')
+            except Exception as e:
+                messages.error(request, str(e))
+                return redirect(refer_url)
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    msg = '%s: %s' % (field, error)
+                    messages.error(request, msg)
+            return redirect(refer_url)
 
 
 class ActivateView(View):
+
     def get(self, request, *args, **kwargs):
         """ Active user's account with a random code
         """
@@ -142,6 +163,7 @@ class ActivateView(View):
 
 
 class ResetPasswordView(View):
+
     def get(self, request, *args, **kwargs):
         if kwargs and 'reset_code' in kwargs:
             code = kwargs['reset_code']
@@ -180,6 +202,7 @@ class ResetPasswordView(View):
 
 
 class SignOutView(View):
+
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
         logout(request)
@@ -187,6 +210,7 @@ class SignOutView(View):
 
 
 class ProfileView(View):
+
     def get(self, request, *args, **kwargs):
         try:
             if 'user_id' in kwargs:
@@ -209,6 +233,7 @@ class ProfileView(View):
 
 
 class EditProfileView(View):
+
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
         try:
@@ -270,6 +295,7 @@ class EditProfileView(View):
 
 
 class EditAccountView(View):
+
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
         try:
@@ -329,6 +355,7 @@ class EditAccountView(View):
 
 
 class QuestionView(View):
+
     def get(self, request, *args, **kwargs):
         """
         1. Find the question with question_id.
@@ -411,6 +438,7 @@ class QuestionView(View):
 
 
 class QuestionsView(View):
+
     def get(self, request, *args, **kwargs):
 
         PER_PAGE = 5
@@ -450,6 +478,7 @@ class QuestionsView(View):
 
 
 class TaggedQuestionsView(View):
+
     def get(self, request, *args, **kwargs):
 
         PER_PAGE = 5
@@ -494,6 +523,7 @@ class TaggedQuestionsView(View):
 
 
 class TagsView(View):
+
     def get(self, request, *args, **kwargs):
         PER_PAGE = 10
         page = request.GET.get('page')
@@ -509,11 +539,13 @@ class TagsView(View):
 
 
 class UsersView(View):
+
     def get(self, request, *args, **kwargs):
         pass
 
 
 class QuestionActionView(View):
+
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
 
@@ -666,6 +698,7 @@ class QuestionActionView(View):
 
 
 class AskQuestionView(View):
+
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
         """
@@ -713,6 +746,7 @@ class AskQuestionView(View):
 
 
 class AnswerActionView(View):
+
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
 
@@ -850,6 +884,7 @@ class AnswerActionView(View):
 
 
 class EditAvatarView(View):
+
     @method_decorator(login_required)
     def get(self, request):
         tmp = str(request.user.member.avatar).split('.')
@@ -878,6 +913,7 @@ class EditAvatarView(View):
 
 
 class SearchView(View):
+
     def get(self, request):
         return render(request, 'qa/search.html')
 

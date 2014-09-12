@@ -26,16 +26,16 @@
                     <a href="/tags/">Tags</a>
                 </li>
                 
-
-                <form action="/search/" method="post" class="navbar-form
-                navbar-left">
-                    {% csrf_token %}
-                    <div class="form-group">
-                        <input type="text" name="query" class="form-control"
-                               placeholder="Search.."/>
-                    </div>
-                </form>
-
+                <li>
+                    <form action="/search/" method="post" class="navbar-form
+                    navbar-left">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <input type="text" name="query" class="form-control"
+                                   placeholder="Search.."/>
+                        </div>
+                    </form>                    
+                </li>
             </ul>
             <ul class="nav navbar-nav navbar-right">
                 {% if not user.is_authenticated %}
