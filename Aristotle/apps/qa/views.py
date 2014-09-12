@@ -27,9 +27,12 @@ from models import Tag, ResetPassword
 from forms import SignInForm, SignUpForm
 from forms import ResetForm, ResetPasswordForm
 from forms import EditProfileForm, EditAccountForm
+from forms import EditAvatarForm
 from notification import EmailNotification
 from errors import InvalidFieldError
 from utils import parse_listed_strs
+
+_DEFAULT_AVATAR = 'defaultavatar.jpg'
 
 
 def form_errors_handler(request, form, refer_url):
@@ -427,6 +430,44 @@ class EditAccountView(View):
                 user.email = email
                 user.save()
                 return redirect('/signout/')
+            except Exception as e:
+                messages.error(request, str(e))
+                return redirect(refer_url)
+        else:
+            return form_errors_handler(request, form, refer_url)
+
+
+class EditAvatarView(View):
+
+    @method_decorator(login_required)
+    def get(self, request):
+        """user avatar page
+        """
+        try:
+            tmp = str(request.user.member.avatar).split('.')
+            avatar_path = tmp[0] + '_256_256.' + tmp[1]
+        except Exception:
+            avatar_path = _DEFAULT_AVATAR
+        form = EditAvatarForm()
+        return render(request, 'qa/edit_avatar.html',
+                      {'avatar_path': avatar_path, 'form': form})
+
+    @method_decorator(login_required)
+    def post(self, request):
+        """upload user avatar
+        """
+        user = request.user
+        refer_url = request.META.get('HTTP_REFERER')
+        form = EditAvatarForm(request.POST, request.FILES)
+
+        if form.is_valid():
+            try:
+                upload_avatar = request.FILES.get('avatar')
+                if not upload_avatar:
+                    raise Exception('Incorrect image')
+                user.member.avatar = upload_avatar
+                user.member.save()
+                return redirect(refer_url)
             except Exception as e:
                 messages.error(request, str(e))
                 return redirect(refer_url)
@@ -961,35 +1002,6 @@ class AnswerActionView(View):
             vote = AnswerVote.objects.create(
                 answer=answer[0], user=user, vote_type=up)
             vote.save()
-
-
-class EditAvatarView(View):
-
-    @method_decorator(login_required)
-    def get(self, request):
-        tmp = str(request.user.member.avatar).split('.')
-        avatar_path = tmp[0] + '_256_256.' + tmp[1]
-        return render(request, 'qa/edit_avatar.html',
-                      {'avatar_path': avatar_path})
-
-    @method_decorator(login_required)
-    def post(self, request):
-        user = request.user
-
-        try:
-            # Use Clean Form?
-            upload_image = request.FILES.get('image')
-            if not upload_image:
-                raise Http404
-
-            # TODO: Check the uploaded file.
-            user.member.avatar = upload_image
-            user.member.save()
-
-            return redirect('/profile/avatar/')
-        except Exception as e:
-            print(e)
-            return redirect('/profile/avatar/')
 
 
 class SearchView(View):

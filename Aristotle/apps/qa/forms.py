@@ -86,3 +86,7 @@ class EditAccountForm(forms.Form):
         if newpassword and repassword and newpassword != repassword:
             msg = 'New passwords are not identical'
             self.add_error('repassword', msg)
+
+
+class EditAvatarForm(forms.Form):
+    avatar = forms.FileField(label='Avatar')

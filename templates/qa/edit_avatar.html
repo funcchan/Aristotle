@@ -2,20 +2,34 @@
 {% block title %} Edit User Profile {% endblock %}
 
 {% block content %}
-
-
-<h2>{{ user.username }}'s Profile</h2>
-<p>Update Avatar</p>
+{% load widget_tweaks %}
 {% load staticfiles %}
-<img src="{% static avatar_path %}" />
-<hr/>    
-<form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    <input type="file" name="image"/>
-    <br/>
-    <button type="submit">Submit</button>
-</form>
-
-
+<div class="row">
+    <div class="col-md-4">
+        <h2>{{ user.username }}'s Avatar</h2>
+        <img src="{% static avatar_path %}" />
+    {% if messages %}
+        {% for message in messages %}
+            <p class="text-danger">{{ message }}</p>
+        {% endfor %}
+    {% endif %}
+        <form role="form" enctype="multipart/form-data" method="POST" action="{% url "edit-avatar" %}" class="form-horizontal">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}" />
+        {% for field in form %}
+            <div class="form-group">
+                <div class="col-sm-6">
+                    {{ field }}
+                </div>
+            </div>
+        {% endfor %}
+            <div class="form-group">
+                <div class="col-sm-2">
+                  <button type="submit" class="btn btn-primary">Upload</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
 
 {% endblock %}
