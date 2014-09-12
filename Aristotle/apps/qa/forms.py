@@ -2,7 +2,7 @@
 #
 # @name: forms.py
 # @create: Sep. 11th, 2014
-# @update: Sep. 11th, 2014
+# @update: Sep. 12th, 2014
 # @author: Z. Huang
 
 from django import forms
@@ -47,3 +47,22 @@ class ResetPasswordForm(forms.Form):
         if password and repassword and password != repassword:
             msg = 'passwords are not identical'
             self.add_error('repassword', msg)
+
+
+class EditProfileForm(forms.Form):
+    GENDER_CHOICES = (('M', 'male'), ('F', 'female'), ('UN', 'unknown'))
+    first_name = forms.CharField(label='First Name', max_length=30)
+    last_name = forms.CharField(label='Last Name', max_length=30)
+    age = forms.DecimalField(label='Age', min_value=0)
+    gender = forms.ChoiceField(
+        label='Gender', choices=GENDER_CHOICES)
+    occupation = forms.CharField(label='Occupation', required=False)
+    education = forms.CharField(label='Education', required=False)
+    address = forms.CharField(label='Address', required=False)
+    phone = forms.CharField(label='Phone', required=False)
+    company = forms.CharField(label='Company', required=False)
+    website = forms.URLField(label='Website', required=False)
+    interests = forms.CharField(
+        label='Interests', widget=forms.Textarea, required=False)
+    bio = forms.CharField(
+        label='About me', widget=forms.Textarea, required=False)

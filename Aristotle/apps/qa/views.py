@@ -2,9 +2,9 @@
 #
 # @name: views.py
 # @create: Aug. 25th, 2014
-# @update: Sep. 11th, 2014
+# @update: Sep. 12th, 2014
 # @author: Z. Huang, Liangju
-from django.http import Http404
+from django.http import Http404, HttpResponse
 from django.shortcuts import render, redirect
 from django.utils.decorators import method_decorator
 from django.utils import timezone
@@ -12,6 +12,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.views.generic import View
+from django.views.generic.edit import FormView
 from django.contrib.auth.decorators import login_required
 from django.db.models import Prefetch
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
@@ -26,6 +27,7 @@ from models import Member, Activation
 from models import Tag, ResetPassword
 from forms import SignInForm, SignUpForm
 from forms import ResetForm, ResetPasswordForm
+from forms import EditProfileForm
 from notification import EmailNotification
 from errors import InvalidFieldError
 from utils import parse_listed_strs
@@ -247,86 +249,126 @@ class SignOutView(View):
 class ProfileView(View):
 
     def get(self, request, *args, **kwargs):
-        try:
-            if 'user_id' in kwargs:
-                uid = kwargs['user_id']
+        """user profile page
+        two url pattern:
+        /profile/
+        /profile/:id/
+        if the user id does not exist or the user
+        is a guest, then raise 404 error
+        """
+        if kwargs and 'user_id' in kwargs:
+            uid = kwargs['user_id']
+            try:
                 user = User.objects.get(id=int(uid))
-            else:
-                user = request.user
-                if user.is_anonymous():
-                    raise Exception('Unauthorized action')
-            questions = Question.objects.order_by(
-                '-created_time').filter(author=user)
-            answers = Answer.objects.order_by(
-                '-created_time').filter(author=user)
-            return render(request, 'qa/profile.html',
-                          {'user': user,
-                           'questions': questions,
-                           'answers': answers})
-        except Exception:
-            raise Http404
+            except Exception:
+                raise Http404()
+        else:
+            user = request.user
+            if user.is_anonymous():
+                raise Http404()
+        questions = Question.objects.order_by(
+            '-created_time').filter(author=user)
+        answers = Answer.objects.order_by(
+            '-created_time').filter(author=user)
+        return render(request, 'qa/profile.html',
+                      {'user': user,
+                       'questions': questions,
+                       'answers': answers})
 
 
 class EditProfileView(View):
 
+    # template_name = 'qa/edit_profile.html'
+    # form_class = EditProfileForm
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
-        try:
-            if 'user_id' in kwargs:
-                uid = kwargs['user_id']
+        """Edit profile page
+        /profile/:id/edit/
+        /profile/edit/
+        """
+        if kwargs and 'user_id' in kwargs:
+            uid = kwargs['user_id']
+            try:
                 user = User.objects.get(id=int(uid))
-                if user != request.user:
-                    raise Http404
-            else:
-                user = request.user
-            return render(request, 'qa/edit_profile.html', {'user': user})
-        except Exception:
-            raise Http404
+            except Exception:
+                raise Http404()
+            if user != request.user:
+                return HttpResponse(status=401)
+        else:
+            user = request.user
+        member = user.member
+        initial = {
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'age': member.age,
+            'gender': member.gender,
+            'occupation': member.occupation,
+            'education': member.education,
+            'address': member.address,
+            'phone': member.phone,
+            'company': member.company,
+            'website': member.website,
+            'interests': member.interests,
+            'bio': member.bio,
+        }
+        form = EditProfileForm(initial=initial)
+        return render(request, 'qa/edit_profile.html',
+                      {'user': user, 'form': form})
 
     @method_decorator(login_required)
     def post(self, request, *args, **kwargs):
-        try:
-            if 'user_id' in kwargs:
-                uid = kwargs['user_id']
+        """Edit user's profile
+        Basic information of a user
+        """
+        if kwargs and 'user_id' in kwargs:
+            uid = kwargs['user_id']
+            try:
                 user = User.objects.get(id=int(uid))
+            except Exception:
+                raise Http404()
+            if user != request.user:
+                return HttpResponse(status=401)
+        else:
+            user = request.user
 
-                if user != request.user:
-                    raise Http404
-            else:
-                user = request.user
+        refer_url = request.META.get('HTTP_REFERER')
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        age = request.POST.get('age')
+        gender = request.POST.get('gender')
+        occupation = request.POST.get('occupation')
+        education = request.POST.get('education')
+        address = request.POST.get('address')
+        phone = request.POST.get('phone')
+        company = request.POST.get('company')
+        website = request.POST.get('website')
+        interests = request.POST.get('interests')
+        bio = request.POST.get('bio')
+        form = EditProfileForm(request.POST)
 
-            first_name = request.POST.get('first_name')
-            last_name = request.POST.get('last_name')
-            age = request.POST.get('age')
-            gender = request.POST.get('gender')
-            occupation = request.POST.get('occupation')
-            education = request.POST.get('education')
-            address = request.POST.get('address')
-            phone = request.POST.get('phone')
-            company = request.POST.get('company')
-            website = request.POST.get('website')
-            interests = request.POST.get('interests')
-            bio = request.POST.get('bio')
+        if form.is_valid():
+            try:
+                user.first_name = first_name
+                user.last_name = last_name
+                user.save()
 
-            user.first_name = first_name
-            user.last_name = last_name
-            user.save()
-
-            user.member.age = int(age)
-            user.member.gender = gender
-            user.member.occupation = occupation
-            user.member.education = education
-            user.member.address = address
-            user.member.phone = phone
-            user.member.company = company
-            user.member.website = website
-            user.member.interests = interests
-            user.member.bio = bio
-            user.member.update()
-            return redirect('/profile/edit/')
-        except Exception as e:
-            print(e)
-            raise Http404
+                user.member.age = int(age)
+                user.member.gender = gender
+                user.member.occupation = occupation
+                user.member.education = education
+                user.member.address = address
+                user.member.phone = phone
+                user.member.company = company
+                user.member.website = website
+                user.member.interests = interests
+                user.member.bio = bio
+                user.member.update()
+                return redirect(refer_url)
+            except Exception as e:
+                messages.error(request, str(e))
+                return redirect(refer_url)
+        else:
+            return form_errors_handler(request, form, refer_url)
 
 
 class EditAccountView(View):

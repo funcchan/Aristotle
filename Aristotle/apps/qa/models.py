@@ -2,7 +2,7 @@
 #
 # @name: models.py
 # @create:
-# @update: Sep. 10th, 2014
+# @update: Sep. 12th, 2014
 # @author:
 from django.db import models
 from django.contrib.auth.models import User
@@ -26,8 +26,10 @@ def upload_to_handler(instance, filename):
 
 
 class Member(models.Model):
+    GENDER_CHOICES = (('M', 'male'), ('F', 'female'), ('UN', 'unknown'))
     user = models.OneToOneField(User)
-    gender = models.IntegerField(default=0)
+    gender = models.CharField(
+        default='UN', choices=GENDER_CHOICES, max_length=40)
     age = models.IntegerField(blank=True, default=0)
     occupation = models.CharField(blank=True, default='', max_length=100)
     education = models.CharField(blank=True, default='', max_length=20)
