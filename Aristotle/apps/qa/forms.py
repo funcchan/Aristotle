@@ -66,3 +66,23 @@ class EditProfileForm(forms.Form):
         label='Interests', widget=forms.Textarea, required=False)
     bio = forms.CharField(
         label='About me', widget=forms.Textarea, required=False)
+
+
+class EditAccountForm(forms.Form):
+    password = forms.CharField(
+        label='Verify Password', widget=forms.PasswordInput)
+    username = forms.CharField(label='Username', max_length=30)
+    email = forms.EmailField(label='Email')
+    newpassword = forms.CharField(
+        label='New Password', widget=forms.PasswordInput)
+    repassword = forms.CharField(
+        label='Repeat Password', widget=forms.PasswordInput)
+
+    def clean(self):
+        cleaned_data = super(EditAccountForm, self).clean()
+        newpassword = cleaned_data.get('newpassword')
+        repassword = cleaned_data.get("repassword")
+
+        if newpassword and repassword and newpassword != repassword:
+            msg = 'New passwords are not identical'
+            self.add_error('repassword', msg)

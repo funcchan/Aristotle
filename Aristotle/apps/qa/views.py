@@ -12,7 +12,6 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.views.generic import View
-from django.views.generic.edit import FormView
 from django.contrib.auth.decorators import login_required
 from django.db.models import Prefetch
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
@@ -27,7 +26,7 @@ from models import Member, Activation
 from models import Tag, ResetPassword
 from forms import SignInForm, SignUpForm
 from forms import ResetForm, ResetPasswordForm
-from forms import EditProfileForm
+from forms import EditProfileForm, EditAccountForm
 from notification import EmailNotification
 from errors import InvalidFieldError
 from utils import parse_listed_strs
@@ -278,8 +277,6 @@ class ProfileView(View):
 
 class EditProfileView(View):
 
-    # template_name = 'qa/edit_profile.html'
-    # form_class = EditProfileForm
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
         """Edit profile page
@@ -375,60 +372,66 @@ class EditAccountView(View):
 
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
-        try:
-            if 'user_id' in kwargs:
-                uid = kwargs['user_id']
+        """Edit account page
+        """
+        if kwargs and 'user_id' in kwargs:
+            uid = kwargs['user_id']
+            try:
                 user = User.objects.get(id=int(uid))
-                if user != request.user:
-                    raise Http404
-            else:
-                user = request.user
-            return render(request, 'qa/edit_account.html', {'user': user})
-        except Exception:
-            raise Http404
+            except Exception:
+                raise Http404()
+            if user != request.user:
+                return HttpResponse(status=401)
+        else:
+            user = request.user
+        initial = {
+            'username': user.username,
+            'email': user.email,
+        }
+        form = EditAccountForm(initial=initial)
+        return render(request, 'qa/edit_account.html',
+                      {'user': user, 'form': form})
 
     @method_decorator(login_required)
     def post(self, request, *args, **kwargs):
+        """Edit account
+        user needs to verify his/her account with
+        password
+        """
+        if kwargs and 'user_id' in kwargs:
+            uid = kwargs['user_id']
+            try:
+                user = User.objects.get(id=int(uid))
+            except Exception:
+                raise Http404()
+            if user != request.user:
+                return HttpResponse(status=401)
+        else:
+            user = request.user
+        refer_url = request.META.get('HTTP_REFERER')
         password = request.POST.get('password')
         username = request.POST.get('username')
         email = request.POST.get('email')
-        new_password = request.POST.get('new_password')
-        err_msgs = []
-        if not username:
-            err_msgs.append('Username is required')
-        if not email:
-            err_msgs.append('Email is required')
-        if not password:
-            err_msgs.append('Password is required')
+        newpassword = request.POST.get('newpassword')
+        form = EditAccountForm(request.POST)
 
-        try:
-            if err_msgs:
-                raise InvalidFieldError(messages=err_msgs)
-            if 'user_id' in kwargs:
-                uid = kwargs['user_id']
-                user = User.objects.get(id=int(uid))
-
-                if user != request.user:
-                    raise Http404
-            else:
-                user = request.user
-            if new_password:
-                if user.check_password(password):
-                    user.set_password(new_password)
-                else:
-                    raise Exception('Unauthorized action')
-            user.username = username
-            user.email = email
-            user.save()
-            return redirect('/signout/')
-        except InvalidFieldError as e:
-            msgs = e.messages
-            for msg in msgs:
-                messages.error(request, msg)
-            return redirect('/profile/account/')
-        except Exception as e:
-            messages.error(request, e.message)
-            return redirect('/profile/account/')
+        if form.is_valid():
+            try:
+                if newpassword:
+                    if user.check_password(password):
+                        user.set_password(newpassword)
+                    else:
+                        msg = 'Incorrect password'
+                        raise Exception(msg)
+                user.username = username
+                user.email = email
+                user.save()
+                return redirect('/signout/')
+            except Exception as e:
+                messages.error(request, str(e))
+                return redirect(refer_url)
+        else:
+            return form_errors_handler(request, form, refer_url)
 
 
 class QuestionView(View):
