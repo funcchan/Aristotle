@@ -114,3 +114,15 @@ class AppendQuestionForm(forms.Form):
 
 class AnswerForm(forms.Form):
     answer_content = forms.CharField(widget=forms.Textarea)
+
+
+class CommentAnswerForm(forms.Form):
+    answer_comment_content = forms.CharField(widget=forms.Textarea)
+
+
+class AppendAnswerForm(forms.Form):
+    answer_append_content = forms.CharField(widget=forms.Textarea)
+
+
+class EditAnswerForm(forms.Form):
+    answer_content = forms.CharField(widget=forms.Textarea)
