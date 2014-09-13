@@ -36,12 +36,8 @@ from forms import AppendAnswerForm
 from notification import EmailNotification
 from utils import parse_listed_strs
 
-_DEFAULT_AVATAR = 'defaultavatar.jpg'
-_HOME_PAGE_SIZE = 25
-_TAG_PAGE_SIZE = 50
-_USER_PAGE_SIZE = 50
-_QUESTION_PAGE_SIZE = 25
-_ANSWER_PAGE_SIZE = 25
+import settings as qa_settings
+
 logger = logging.getLogger(__name__)
 
 
@@ -58,7 +54,7 @@ class HomeView(View):
     def get(self, request, *args, **kwargs):
         """Home page
         """
-        limit = _HOME_PAGE_SIZE
+        limit = qa_settings.HOME_PAGE_SIZE
         questions = Question.objects.order_by('-created_time')[:limit]
         return render(request, 'qa/index.html', {'questions': questions})
 
@@ -286,11 +282,11 @@ class ProfileView(View):
         answers = Answer.objects.order_by(
             '-created_time').filter(author=user)
 
-        try:
-            tmp = str(user.member.avatar).split('.')
-            avatar_path = tmp[0] + '_256_256.' + tmp[1]
-        except Exception:
-            avatar_path = _DEFAULT_AVATAR
+        if user.member.avatar:
+            avatar = str(user.member.avatar)
+        else:
+            avatar = qa_settings.DEFAULT_AVATAR
+        avatar_path = qa_settings.AVATAR_PATH + 'large/' + avatar
 
         return render(request, 'qa/profile.html',
                       {'user': user,
@@ -477,11 +473,11 @@ class EditAvatarView(View):
         else:
             user = request.user
 
-        try:
-            tmp = str(request.user.member.avatar).split('.')
-            avatar_path = tmp[0] + '_256_256.' + tmp[1]
-        except Exception:
-            avatar_path = _DEFAULT_AVATAR
+        if user.member.avatar:
+            avatar = str(user.member.avatar)
+        else:
+            avatar = qa_settings.DEFAULT_AVATAR
+        avatar_path = qa_settings.AVATAR_PATH + 'large/' + avatar
         form = EditAvatarForm()
         return render(request, 'qa/edit_avatar.html',
                       {'avatar_path': avatar_path, 'form': form})
@@ -637,7 +633,9 @@ class QuestionsView(View):
         """
         page = request.GET.get('page')
         sort = request.GET.get('sort')
-        per_page = request.GET.get('pagesize') or _QUESTION_PAGE_SIZE
+        per_page = request.GET.get('pagesize')
+        if not per_page:
+            per_page = qa_settings.QUESTION_PAGE_SIZE
         if not sort:
             sort = 'newest'
         question_list = Question.objects
@@ -679,7 +677,9 @@ class TaggedQuestionsView(View):
         tag = kwargs['tag_name']
         page = request.GET.get('page')
         sort = request.GET.get('sort')
-        per_page = request.GET.get('pagesize') or _QUESTION_PAGE_SIZE
+        per_page = request.GET.get('pagesize')
+        if not per_page:
+            per_page = qa_settings.QUESTION_PAGE_SIZE
         if not sort:
             sort = 'newest'
         tags = Tag.objects.filter(name=tag)
@@ -723,7 +723,7 @@ class TagsView(View):
         """A list of tags
         """
         page = request.GET.get('page')
-        per_page = request.GET.get('pagesize') or _TAG_PAGE_SIZE
+        per_page = request.GET.get('pagesize') or qa_settings.TAG_PAGE_SIZE
         tag_list = Tag.objects.values('name').distinct()
         paginator = Paginator(tag_list, per_page)
         try:
@@ -736,6 +736,7 @@ class TagsView(View):
 
 
 class UsersListView(View):
+
     def get(self, request):
         # TODO: Should render the 32*32 avatar for each users
         query = request.GET.get('query')
@@ -1164,10 +1165,8 @@ class SearchView(View):
                 raise Http404
 
             result = search_question(search_query)
-            return render(request, 'qa/search_question.html', {'result': result})
+            return render(request, 'qa/search_question.html',
+                          {'result': result})
         except Exception as e:
             logger.error(str(e))
             return redirect('/search/')
-
-
-

@@ -8,25 +8,25 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from PIL import Image
+from settings import DEFAULT_AVATAR, AVATAR_PATH
 from utils import get_utc_timestamp, format_time_path
 from utils import get_utc_time
-
-
-_DEFAULT_AVATAR = 'defaultavatar.jpg'
-_AVATAR_PATH = 'uploads/avatars/%Y/%m/'
 
 
 def upload_to_handler(instance, filename):
     tmp = filename.split('.')
     if tmp and len(tmp) == 2:
-        path = format_time_path(_AVATAR_PATH)
+        path = format_time_path(AVATAR_PATH)
+        # add random strings
         path += str(get_utc_timestamp()) + '.' + tmp[1]
         return path
-    return _DEFAULT_AVATAR
+    return DEFAULT_AVATAR
 
 
 class Member(models.Model):
-    GENDER_CHOICES = (('M', 'male'), ('F', 'female'), ('UN', 'unknown'))
+    GENDER_CHOICES = (
+        ('Male', 'Male'), ('Female', 'Female'), ('Unknown', 'Unknown')
+    )
     user = models.OneToOneField(User)
     gender = models.CharField(
         default='UN', choices=GENDER_CHOICES, max_length=40)
@@ -37,32 +37,37 @@ class Member(models.Model):
     phone = models.CharField(blank=True, default='', max_length=20)
     company = models.CharField(blank=True, default='', max_length=100)
     website = models.URLField(blank=True, default='')
-    avatar = models.ImageField(blank=True, default=_DEFAULT_AVATAR,
+    avatar = models.ImageField(blank=True, default=DEFAULT_AVATAR,
                                upload_to=upload_to_handler)
     interests = models.CharField(blank=True, default='', max_length=255)
     bio = models.TextField(blank=True)
     last_login_ip = models.CharField(blank=True, default='', max_length=40)
-    # level = models.IntegerField()
-    # reputation = models.IntegerField()
 
     def save_avatar(self, *args, **kwargs):
         """rewrite model's save method
         """
         if not self.id:
-            return super(Member, self).save(*args, **kwargs)
-        super(Member, self).save(*args, **kwargs)
-        photo = Image.open(self.avatar).convert('RGB')
-        tmp = self.avatar.path.split('.')
-        prefix, subfix = tmp[0], tmp[1]
-        size_list = [(256, 256), (128, 128), (32, 32)]
+            return self.update()
+        self.update()
+        idx = self.avatar.path.find(AVATAR_PATH)
+        prefix = self.avatar.path[0:idx]
+        filename = self.avatar.path[idx+len(AVATAR_PATH):]
+        avatar = Image.open(self.avatar).convert('RGB')
+        size_list = {
+            'large': (256, 256),
+            'medium': (128, 128),
+            'small': (32, 32),
+        }
 
-        for size in size_list:
-            copy = photo.copy()
+        for key, size in size_list.items():
+            copy = avatar.copy()
             copy.thumbnail(size, Image.ANTIALIAS)
-            size_str = '_' + str(size[0]) + '_' + str(size[1]) + '.'
-            copy.save(prefix + size_str + subfix)
+            new_path = ''.join([prefix, AVATAR_PATH, key, '/', filename])
+            copy.save(new_path)
             copy.close()
-        photo.close()
+        avatar.close()
+        self.avatar.name = filename
+        self.update()
 
     def update(self, *args, **kwargs):
         return super(Member, self).save(*args, **kwargs)
