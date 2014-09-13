@@ -50,7 +50,9 @@ class ResetPasswordForm(forms.Form):
 
 
 class EditProfileForm(forms.Form):
-    GENDER_CHOICES = (('M', 'male'), ('F', 'female'), ('UN', 'unknown'))
+    GENDER_CHOICES = (
+        ('Male', 'Male'), ('Female', 'Female'), ('Unknown', 'Unknown')
+    )
     first_name = forms.CharField(label='First Name', max_length=30)
     last_name = forms.CharField(label='Last Name', max_length=30)
     age = forms.DecimalField(label='Age', min_value=0)

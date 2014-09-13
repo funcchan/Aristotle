@@ -29,7 +29,7 @@ class Member(models.Model):
     )
     user = models.OneToOneField(User)
     gender = models.CharField(
-        default='UN', choices=GENDER_CHOICES, max_length=40)
+        default='Unknown', choices=GENDER_CHOICES, max_length=40)
     age = models.IntegerField(blank=True, default=0)
     occupation = models.CharField(blank=True, default='', max_length=100)
     education = models.CharField(blank=True, default='', max_length=20)
