@@ -4,6 +4,7 @@
 # @create: Aug. 25th, 2014
 # @update: Sep. 12th, 2014
 # @author: Z. Huang, Liangju
+import logging
 from django.http import Http404, HttpResponse
 from django.shortcuts import render, redirect
 from django.utils.decorators import method_decorator
@@ -33,10 +34,15 @@ from forms import CommentQuestionForm, AppendQuestionForm
 from forms import EditAnswerForm, CommentAnswerForm
 from forms import AppendAnswerForm
 from notification import EmailNotification
-from errors import InvalidFieldError
 from utils import parse_listed_strs
 
 _DEFAULT_AVATAR = 'defaultavatar.jpg'
+_HOME_PAGE_SIZE = 25
+_TAG_PAGE_SIZE = 50
+_USER_PAGE_SIZE = 50
+_QUESTION_PAGE_SIZE = 25
+_ANSWER_PAGE_SIZE = 25
+logger = logging.getLogger(__name__)
 
 
 def form_errors_handler(request, form, refer_url):
@@ -50,10 +56,10 @@ def form_errors_handler(request, form, refer_url):
 class HomeView(View):
 
     def get(self, request, *args, **kwargs):
-        """test
+        """Home page
         """
-        # TODO list order, limits
-        questions = Question.objects.order_by('-created_time')
+        limit = _HOME_PAGE_SIZE
+        questions = Question.objects.order_by('-created_time')[:limit]
         return render(request, 'qa/index.html', {'questions': questions})
 
 
@@ -482,7 +488,7 @@ class EditAvatarView(View):
 class QuestionView(View):
 
     def get(self, request, *args, **kwargs):
-        """
+        """Question page
         """
         qid = kwargs['question_id']
 
@@ -586,17 +592,18 @@ class QuestionView(View):
 
             return render(request, 'qa/question.html', data)
         except Exception as e:
-            print(e)
+            logger.error(str(e))
             return HttpResponse(status=500)
 
 
 class QuestionsView(View):
 
     def get(self, request, *args, **kwargs):
-
-        PER_PAGE = 5
+        """A list of questions
+        """
         page = request.GET.get('page')
         sort = request.GET.get('sort')
+        per_page = request.GET.get('pagesize') or _QUESTION_PAGE_SIZE
         if not sort:
             sort = 'newest'
         question_list = Question.objects
@@ -619,7 +626,7 @@ class QuestionsView(View):
                 question_list.all(),
                 key=lambda i: i.created_time, reverse=True)
 
-        paginator = Paginator(question_list, PER_PAGE)
+        paginator = Paginator(question_list, per_page)
         try:
             questions = paginator.page(page)
         except PageNotAnInteger:
@@ -633,11 +640,12 @@ class QuestionsView(View):
 class TaggedQuestionsView(View):
 
     def get(self, request, *args, **kwargs):
-
-        PER_PAGE = 5
+        """A list of tagged questions
+        """
         tag = kwargs['tag_name']
         page = request.GET.get('page')
         sort = request.GET.get('sort')
+        per_page = request.GET.get('pagesize') or _QUESTION_PAGE_SIZE
         if not sort:
             sort = 'newest'
         tags = Tag.objects.filter(name=tag)
@@ -664,7 +672,7 @@ class TaggedQuestionsView(View):
             question_list = sorted(
                 question_list, key=lambda i: i.created_time, reverse=True)
 
-        paginator = Paginator(question_list, PER_PAGE)
+        paginator = Paginator(question_list, per_page)
         try:
             questions = paginator.page(page)
         except PageNotAnInteger:
@@ -678,10 +686,12 @@ class TaggedQuestionsView(View):
 class TagsView(View):
 
     def get(self, request, *args, **kwargs):
-        PER_PAGE = 10
+        """A list of tags
+        """
         page = request.GET.get('page')
+        per_page = request.GET.get('pagesize') or _TAG_PAGE_SIZE
         tag_list = Tag.objects.values('name').distinct()
-        paginator = Paginator(tag_list, PER_PAGE)
+        paginator = Paginator(tag_list, per_page)
         try:
             tags = paginator.page(page)
         except PageNotAnInteger:
@@ -950,7 +960,8 @@ class AnswerActionView(View):
             form = EditAnswerForm(initial=initial)
             return render(request, 'qa/edit_answer.html',
                           {'answer': answer, 'form': form})
-        except Exception:
+        except Exception as e:
+            logger.error(str(e))
             raise Http404()
 
     @method_decorator(login_required)
@@ -1097,10 +1108,12 @@ class AnswerActionView(View):
 
 class SearchView(View):
 
-    def get(self, request):
+    def get(self, request, *args, **kwargs):
+        """Search page
+        """
         return render(request, 'qa/search.html')
 
-    def post(self, request):
+    def post(self, request, *args, **kwargs):
         try:
             search_type = request.POST.get('type')
             search_query = request.POST.get('query')
@@ -1122,5 +1135,5 @@ class SearchView(View):
             return render(request, 'qa/search.html', {'result': result,
                                                       'type': search_type})
         except Exception as e:
-            print(e)
+            logger.error(str(e))
             return redirect('/search/')
