@@ -45,7 +45,7 @@ class Member(models.Model):
     # level = models.IntegerField()
     # reputation = models.IntegerField()
 
-    def save(self, *args, **kwargs):
+    def save_avatar(self, *args, **kwargs):
         """rewrite model's save method
         """
         if not self.id:

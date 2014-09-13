@@ -476,7 +476,7 @@ class EditAvatarView(View):
                 if not upload_avatar:
                     raise Exception('Incorrect image')
                 user.member.avatar = upload_avatar
-                user.member.save()
+                user.member.save_avatar()
                 return redirect(refer_url)
             except Exception as e:
                 messages.error(request, str(e))
