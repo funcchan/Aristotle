@@ -42,13 +42,22 @@ urlpatterns = patterns(
         views.ProfileView.as_view(), name='profile'),
     url(r'^profile/(?P<user_id>[0-9]+)/$',
         views.ProfileView.as_view(), name='profile'),
+
     url(r'^profile/edit/$',
         views.EditProfileView.as_view(), name='edit-profile'),
     url(r'^profile/(?P<user_id>[0-9]+)/edit/$',
         views.EditProfileView.as_view(), name='edit-profile'),
+
     url(r'^profile/avatar/$',
         views.EditAvatarView.as_view(), name='edit-avatar'),
+    url(r'^profile/(?P<user_id>[0-9]+)/avatar/$',
+        views.EditAvatarView.as_view(), name='edit-avatar'),
+
     url(r'^profile/account/$',
         views.EditAccountView.as_view(), name='edit-account'),
     url(r'^search/$', views.SearchView.as_view(), name='search'),
+
+    url(r'^users/$', views.UsersListView.as_view(), name='user-list'),
+    url(r'^users/?query=[\w0-9]+/$', views.UsersListView.as_view(),
+        name='user-list')
 )

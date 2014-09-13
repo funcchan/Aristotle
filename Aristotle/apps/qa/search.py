@@ -15,7 +15,6 @@ def search_question(query):
                                           | Q(title__contains=query))
         return results
 
-
 def search_user(query):
     results_user = User.objects.filter(username__contains=query)
     return results_user

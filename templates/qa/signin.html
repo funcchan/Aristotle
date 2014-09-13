@@ -12,6 +12,7 @@
             <p class="text-danger">{{ message }}</p>
         {% endfor %}
     {% endif %}
+
         <form role="form" method="POST" action="{% url "signin" %}" class="form-horizontal">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ next }}" />
@@ -32,6 +33,7 @@
                 </div>
             </div>
         </form>
+
     </div>
 </div>
 

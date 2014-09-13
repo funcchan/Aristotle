@@ -2,14 +2,21 @@
 {% block title %} User Profile {% endblock %}
 
 {% block content %}
+{% load widget_tweaks %}
+{% load staticfiles %}
 <div class="row">
     <div class="col-md-12">
         <h2>{{ user.username }}'s Profile</h2>
+    {% if is_login_user %}
         <div>
-            <a href="./edit">Edit</a> | 
-            <a href="./avatar/">Edit Avatar</a> | 
-            <a href="./account">Edit Account</a>
-        </div>      
+        <a href="./edit">Edit</a> |
+        <a href="./avatar/">Edit Avatar</a> |
+        <a href="./account">Edit Account</a>
+        </div>
+    {% endif %}
+
+        <img src="{% static avatar_path %}" />
+
         <p>{{ user.first_name }} {{ user.last_name }}</p>
         <p>{{ user.email }}</p>
         <p>{{ user.member.gender }}</p>

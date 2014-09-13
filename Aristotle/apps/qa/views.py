@@ -261,23 +261,35 @@ class ProfileView(View):
         is a guest, then raise 404 error
         """
         if kwargs and 'user_id' in kwargs:
+
             uid = kwargs['user_id']
             try:
                 user = User.objects.get(id=int(uid))
+                is_login_user = (user == request.user)
             except Exception:
                 raise Http404()
         else:
             user = request.user
+            is_login_user = True
             if user.is_anonymous():
                 raise Http404()
         questions = Question.objects.order_by(
             '-created_time').filter(author=user)
         answers = Answer.objects.order_by(
             '-created_time').filter(author=user)
+
+        try:
+            tmp = str(user.member.avatar).split('.')
+            avatar_path = tmp[0] + '_256_256.' + tmp[1]
+        except Exception:
+            avatar_path = _DEFAULT_AVATAR
+
         return render(request, 'qa/profile.html',
                       {'user': user,
                        'questions': questions,
-                       'answers': answers})
+                       'answers': answers,
+                       'avatar_path': avatar_path,
+                       'is_login_user': is_login_user})
 
 
 class EditProfileView(View):
@@ -442,9 +454,21 @@ class EditAccountView(View):
 class EditAvatarView(View):
 
     @method_decorator(login_required)
-    def get(self, request):
+    def get(self, request, **kwargs):
         """user avatar page
         """
+
+        if kwargs and 'user_id' in kwargs:
+            uid = kwargs['user_id']
+            try:
+                user = User.objects.get(id=int(uid))
+            except Exception:
+                raise Http404()
+            if user != request.user:
+                return HttpResponse(status=401)
+        else:
+            user = request.user
+
         try:
             tmp = str(request.user.member.avatar).split('.')
             avatar_path = tmp[0] + '_256_256.' + tmp[1]
@@ -455,10 +479,20 @@ class EditAvatarView(View):
                       {'avatar_path': avatar_path, 'form': form})
 
     @method_decorator(login_required)
-    def post(self, request):
+    def post(self, request, **kwargs):
         """upload user avatar
         """
-        user = request.user
+        if kwargs and 'user_id' in kwargs:
+            uid = kwargs['user_id']
+            try:
+                user = User.objects.get(id=int(uid))
+            except Exception:
+                raise Http404()
+            if user != request.user:
+                return HttpResponse(status=401)
+        else:
+            user = request.user
+
         refer_url = request.META.get('HTTP_REFERER')
         form = EditAvatarForm(request.POST, request.FILES)
 
@@ -1062,29 +1096,32 @@ class AnswerActionView(View):
 class SearchView(View):
 
     def get(self, request):
-        return render(request, 'qa/search.html')
+        return render(request, 'qa/search_question.html')
 
     def post(self, request):
         try:
-            search_type = request.POST.get('type')
             search_query = request.POST.get('query')
             # TODO: Split by space
 
             if not search_query:
                 raise Http404
 
-            if not search_type or search_type == 'question':
-                search_type = 'question'
-                result = search_question(search_query)
-
-            elif search_type == 'user':
-                result = search_user(search_query)
-
-            else:
-                raise Http404
-
-            return render(request, 'qa/search.html', {'result': result,
-                                                      'type': search_type})
+            result = search_question(search_query)
+            return render(request, 'qa/search_question.html', {'result': result})
         except Exception as e:
             print(e)
             return redirect('/search/')
+
+
+class UsersListView(View):
+    def get(self, request):
+        # TODO: Should render the 32*32 avatar for each users
+        query = request.GET.get('query')
+        if query:
+            users = search_user(query)
+        else:
+            users = User.objects.order_by('username')
+        return render(request, 'qa/user_list.html', {'users': users})
+
+    def post(self, request):
+        return redirect('/users/?query={0}'.format(request.POST.get('query')))
