@@ -55,6 +55,9 @@ urlpatterns = patterns(
 
     url(r'^profile/account/$',
         views.EditAccountView.as_view(), name='edit-account'),
+    url(r'^profile/(?P<user_id>[0-9]+)/account/$',
+        views.EditAccountView.as_view(), name='edit-account'),
+
     url(r'^search/$', views.SearchView.as_view(), name='search'),
 
     url(r'^users/$', views.UsersListView.as_view(), name='user-list'),
