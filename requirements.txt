@@ -2,3 +2,4 @@ Django==1.7
 Pillow==2.5.3
 Sphinx==1.2.3
 gunicorn==19.1.1
+django-widget-tweaks==1.3
