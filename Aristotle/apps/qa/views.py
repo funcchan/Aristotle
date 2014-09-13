@@ -4,6 +4,7 @@
 # @create: Aug. 25th, 2014
 # @update: Sep. 12th, 2014
 # @author: Z. Huang, Liangju
+import logging
 from django.http import Http404, HttpResponse
 from django.shortcuts import render, redirect
 from django.utils.decorators import method_decorator
@@ -30,11 +31,18 @@ from forms import EditProfileForm, EditAccountForm
 from forms import EditAvatarForm, AskQuestionForm
 from forms import EditQuestionForm, AnswerForm
 from forms import CommentQuestionForm, AppendQuestionForm
+from forms import EditAnswerForm, CommentAnswerForm
+from forms import AppendAnswerForm
 from notification import EmailNotification
-from errors import InvalidFieldError
 from utils import parse_listed_strs
 
 _DEFAULT_AVATAR = 'defaultavatar.jpg'
+_HOME_PAGE_SIZE = 25
+_TAG_PAGE_SIZE = 50
+_USER_PAGE_SIZE = 50
+_QUESTION_PAGE_SIZE = 25
+_ANSWER_PAGE_SIZE = 25
+logger = logging.getLogger(__name__)
 
 
 def form_errors_handler(request, form, refer_url):
@@ -48,10 +56,10 @@ def form_errors_handler(request, form, refer_url):
 class HomeView(View):
 
     def get(self, request, *args, **kwargs):
-        """test
+        """Home page
         """
-        # TODO list order, limits
-        questions = Question.objects.order_by('-created_time')
+        limit = _HOME_PAGE_SIZE
+        questions = Question.objects.order_by('-created_time')[:limit]
         return render(request, 'qa/index.html', {'questions': questions})
 
 
@@ -502,7 +510,7 @@ class EditAvatarView(View):
                 if not upload_avatar:
                     raise Exception('Incorrect image')
                 user.member.avatar = upload_avatar
-                user.member.save()
+                user.member.save_avatar()
                 return redirect(refer_url)
             except Exception as e:
                 messages.error(request, str(e))
@@ -514,9 +522,8 @@ class EditAvatarView(View):
 class QuestionView(View):
 
     def get(self, request, *args, **kwargs):
+        """Question page
         """
-        """
-        # TODO answer order
         qid = kwargs['question_id']
 
         try:
@@ -605,27 +612,32 @@ class QuestionView(View):
             question_comment_form = CommentQuestionForm()
             question_append_form = AppendQuestionForm()
             answer_form = AnswerForm()
+            answer_comment_form = CommentAnswerForm()
+            answer_append_form = AppendAnswerForm()
             data = {
                 'question': question,
                 'answers': answers,
                 'answer_form': answer_form,
                 'question_comment_form': question_comment_form,
                 'question_append_form': question_append_form,
+                'answer_comment_form': answer_comment_form,
+                'answer_append_form': answer_append_form,
             }
 
             return render(request, 'qa/question.html', data)
         except Exception as e:
-            print(e)
+            logger.error(str(e))
             return HttpResponse(status=500)
 
 
 class QuestionsView(View):
 
     def get(self, request, *args, **kwargs):
-
-        PER_PAGE = 5
+        """A list of questions
+        """
         page = request.GET.get('page')
         sort = request.GET.get('sort')
+        per_page = request.GET.get('pagesize') or _QUESTION_PAGE_SIZE
         if not sort:
             sort = 'newest'
         question_list = Question.objects
@@ -648,7 +660,7 @@ class QuestionsView(View):
                 question_list.all(),
                 key=lambda i: i.created_time, reverse=True)
 
-        paginator = Paginator(question_list, PER_PAGE)
+        paginator = Paginator(question_list, per_page)
         try:
             questions = paginator.page(page)
         except PageNotAnInteger:
@@ -662,11 +674,12 @@ class QuestionsView(View):
 class TaggedQuestionsView(View):
 
     def get(self, request, *args, **kwargs):
-
-        PER_PAGE = 5
+        """A list of tagged questions
+        """
         tag = kwargs['tag_name']
         page = request.GET.get('page')
         sort = request.GET.get('sort')
+        per_page = request.GET.get('pagesize') or _QUESTION_PAGE_SIZE
         if not sort:
             sort = 'newest'
         tags = Tag.objects.filter(name=tag)
@@ -693,7 +706,7 @@ class TaggedQuestionsView(View):
             question_list = sorted(
                 question_list, key=lambda i: i.created_time, reverse=True)
 
-        paginator = Paginator(question_list, PER_PAGE)
+        paginator = Paginator(question_list, per_page)
         try:
             questions = paginator.page(page)
         except PageNotAnInteger:
@@ -707,10 +720,12 @@ class TaggedQuestionsView(View):
 class TagsView(View):
 
     def get(self, request, *args, **kwargs):
-        PER_PAGE = 10
+        """A list of tags
+        """
         page = request.GET.get('page')
+        per_page = request.GET.get('pagesize') or _TAG_PAGE_SIZE
         tag_list = Tag.objects.values('name').distinct()
-        paginator = Paginator(tag_list, PER_PAGE)
+        paginator = Paginator(tag_list, per_page)
         try:
             tags = paginator.page(page)
         except PageNotAnInteger:
@@ -720,10 +735,18 @@ class TagsView(View):
         return render(request, 'qa/tags.html', {'tags': tags})
 
 
-class UsersView(View):
+class UsersListView(View):
+    def get(self, request):
+        # TODO: Should render the 32*32 avatar for each users
+        query = request.GET.get('query')
+        if query:
+            users = search_user(query)
+        else:
+            users = User.objects.order_by('username')
+        return render(request, 'qa/user_list.html', {'users': users})
 
-    def get(self, request, *args, **kwargs):
-        pass
+    def post(self, request):
+        return redirect('/users/?query={0}'.format(request.POST.get('query')))
 
 
 class QuestionActionView(View):
@@ -960,21 +983,28 @@ class AnswerActionView(View):
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
 
+        user = request.user
+        aid = kwargs['answer_id']
+        action = kwargs['action']
         try:
-            user = request.user
-            aid = kwargs['answer_id']
-            action = kwargs['action']
-            answer = Answer.objects.get(id=int(aid))
-
+            aid = int(aid)
+        except TypeError:
+            raise Http404()
+        try:
+            answer = Answer.objects.get(id=aid)
             if action != 'edit':
-                raise Exception('Unsupported action')
+                return redirect('/question/{0}'.format(answer.question.id))
             if answer.author != user:
-                raise Exception('Unauthorized action')
+                return HttpResponse(status=401)
+            initial = {
+                'answer_content': answer.content,
+            }
+            form = EditAnswerForm(initial=initial)
             return render(request, 'qa/edit_answer.html',
-                          {'answer': answer})
-        except Exception:
-            # error handling is not done
-            raise Http404
+                          {'answer': answer, 'form': form})
+        except Exception as e:
+            logger.error(str(e))
+            raise Http404()
 
     @method_decorator(login_required)
     def post(self, request, *args, **kwargs):
@@ -987,53 +1017,57 @@ class AnswerActionView(View):
         /answer/<:id>/upvote/
         /answer/<:id>/downvote/
         """
-        err_redirect_uri = request.META['HTTP_REFERER']
+        refer_url = request.META['HTTP_REFERER']
+        aid = kwargs['answer_id']
+        action = kwargs['action']
         try:
-            aid = kwargs['answer_id']
-            action = kwargs['action']
-            answer = Answer.objects.filter(id=int(aid))
-            redirect_uri = '/question/{0}/'.format(answer[0].question.id)
+            aid = int(aid)
+        except TypeError:
+            raise Http404()
+        try:
+            answer_queryset = Answer.objects.filter(id=aid)
             if action == 'edit':
-                self._edit(request, answer)
+                return self._edit(request, answer_queryset, refer_url)
             elif action == 'append':
-                self._append(request, answer)
+                return self._append(request, answer_queryset, refer_url)
             elif action == 'comment':
-                self._comment(request, answer)
+                return self._comment(request, answer_queryset, refer_url)
             elif action == 'delete':
-                self._delete(request, answer)
+                return self._delete(request, answer_queryset)
             elif action == 'accept':
-                self._accept(request, answer)
+                return self._accept(request, answer_queryset)
             elif action == 'upvote':
-                self._vote(request, answer)
+                return self._vote(request, answer_queryset)
             elif action == 'downvote':
-                self._vote(request, answer, False)
-            return redirect(redirect_uri)
-        except InvalidFieldError as e:
-            msgs = e.messages
-            for msg in msgs:
-                messages.error(request, msg)
-            return redirect(err_redirect_uri)
+                return self._vote(request, answer_queryset, False)
         except Exception as e:
-            print(e)
-            message = 'Error'
-            messages.error(request, message)
-            return redirect(err_redirect_uri)
+            messages.error(request, str(e))
+            return redirect(refer_url)
 
-    def _edit(self, request, answer):
-        content = request.POST['content']
-        err_msgs = []
-        if not content:
-            err_msgs.append('No content')
-        if err_msgs:
-            raise InvalidFieldError(messages=err_msgs)
-        if request.user != answer[0].author:
-            raise Exception('Unauthorized action')
-        answer.update(content=content, updated_time=timezone.now())
+    def _edit(self, request, answer_queryset, refer_url):
+        """Edit answer by its author
+        """
+        content = request.POST.get('answer_content')
+        answer = answer_queryset[0]
+        if request.user != answer.author:
+            return HttpResponse(status=401)
+        form = EditAnswerForm(request.POST)
+        if form.is_valid():
+            answer_queryset.update(
+                content=content, updated_time=timezone.now())
+            redirect_uri = '/question/{0}/'.format(answer.question.id)
+            return redirect(redirect_uri)
+        else:
+            return form_errors_handler(request, form, refer_url)
 
-    def _accept(self, request, answer):
-        question = answer[0].question
+    def _accept(self, request, answer_queryset):
+        """Accept an answer by the question's author
+        """
+        answer = answer_queryset[0]
+        question = answer.question
+        redirect_uri = '/question/{0}/'.format(answer.question.id)
         if request.user != question.author:
-            raise Exception('Unauthorized action')
+            return HttpResponse(status=401)
         # user cannot revoke or change this action
         # it is not a flexiable design
         # question.solved might need a one-to-one relationship
@@ -1041,64 +1075,87 @@ class AnswerActionView(View):
         # but, this current design makes the calculation of credits
         # much easier, since in this case we do not have to track
         # the credit changes for each answer and user
-        if question.solved or answer[0].accepted:
-            raise Exception('Unsupported action')
-        answer.update(accepted=True, accepted_time=timezone.now())
-        question.solved = True
-        question.save()
+        if not question.solved and not answer.accepted:
+            answer_queryset.update(accepted=True, accepted_time=timezone.now())
+            question.solved = True
+            question.save()
+        return redirect(redirect_uri)
 
-    def _comment(self, request, answer):
-        content = request.POST['answer_comment']
-        err_msgs = []
-        if not content:
-            err_msgs.append('No content')
-        if err_msgs:
-            raise InvalidFieldError(messages=err_msgs)
-        comment = AnswerComment.objects.create(answer=answer[0],
-                                               user=request.user,
-                                               content=content)
-        comment.save()
+    def _comment(self, request, answer_queryset, refer_url):
+        """Comment an answer
+        """
+        answer = answer_queryset[0]
+        content = request.POST.get('answer_comment_content')
+        form = CommentAnswerForm(request.POST)
+        if form.is_valid():
+            comment = AnswerComment.objects.create(answer=answer,
+                                                   user=request.user,
+                                                   content=content)
+            comment.save()
+            redirect_uri = '/question/{0}/'.format(answer.question.id)
+            return redirect(redirect_uri)
+        else:
+            return form_errors_handler(request, form, refer_url)
 
-    def _append(self, request, answer):
-        content = request.POST['answer_append']
-        err_msgs = []
-        if not content:
-            err_msgs.append('No content')
-        if request.user != answer[0].author:
-            raise Exception('Unauthorized action')
-        if err_msgs:
-            raise InvalidFieldError(messages=err_msgs)
-        append = AnswerAppend.objects.create(answer=answer[0],
-                                             content=content)
-        append.save()
+    def _append(self, request, answer_queryset, refer_url):
+        """Append contents to an answer by the answer's author
+        """
+        content = request.POST.get('answer_append_content')
+        answer = answer_queryset[0]
+        if request.user != answer.author:
+            return HttpResponse(status=401)
 
-    def _delete(self, request, answer):
-        if request.user != answer[0].author:
-            raise Exception('Unauthorized action')
-        question = answer[0].question
-        if question.solved and answer[0].accepted:
+        form = AppendAnswerForm(request.POST)
+        if form.is_valid():
+            append = AnswerAppend.objects.create(answer=answer,
+                                                 content=content)
+            append.save()
+            redirect_uri = '/question/{0}/'.format(answer.question.id)
+            return redirect(redirect_uri)
+        else:
+            return form_errors_handler(request, form, refer_url)
+
+    def _delete(self, request, answer_queryset):
+        """Delete an answer by its author
+        """
+        answer = answer_queryset[0]
+        if request.user != answer.author:
+            return HttpResponse(status=401)
+        question = answer.question
+        if question.solved and answer.accepted:
             question.solved = False
             question.save()
-        answer.delete()
+        answer_queryset.delete()
+        redirect_uri = '/question/{0}/'.format(answer.question.id)
+        return redirect(redirect_uri)
 
-    def _vote(self, request, answer, up=True):
+    def _vote(self, request, answer_queryset, up=True):
+        """Vote for the answer
+        The author cannot vote
+        """
+        answer = answer_queryset[0]
         user = request.user
-        voted = AnswerVote.objects.filter(answer=answer[0], user=user)
-        if voted:
-            if voted[0].vote_type != up:
-                voted.delete()
-        else:
-            vote = AnswerVote.objects.create(
-                answer=answer[0], user=user, vote_type=up)
-            vote.save()
+        voted = AnswerVote.objects.filter(answer=answer, user=user)
+        if user != answer.author:
+            if voted:
+                if voted[0].vote_type != up:
+                    voted.delete()
+            else:
+                vote = AnswerVote.objects.create(
+                    answer=answer, user=user, vote_type=up)
+                vote.save()
+        redirect_uri = '/question/{0}/'.format(answer.question.id)
+        return redirect(redirect_uri)
 
 
 class SearchView(View):
 
-    def get(self, request):
+    def get(self, request, *args, **kwargs):
+        """Search page
+        """
         return render(request, 'qa/search_question.html')
 
-    def post(self, request):
+    def post(self, request, *args, **kwargs):
         try:
             search_query = request.POST.get('query')
             # TODO: Split by space
@@ -1109,19 +1166,8 @@ class SearchView(View):
             result = search_question(search_query)
             return render(request, 'qa/search_question.html', {'result': result})
         except Exception as e:
-            print(e)
+            logger.error(str(e))
             return redirect('/search/')
 
 
-class UsersListView(View):
-    def get(self, request):
-        # TODO: Should render the 32*32 avatar for each users
-        query = request.GET.get('query')
-        if query:
-            users = search_user(query)
-        else:
-            users = User.objects.order_by('username')
-        return render(request, 'qa/user_list.html', {'users': users})
 
-    def post(self, request):
-        return redirect('/users/?query={0}'.format(request.POST.get('query')))
