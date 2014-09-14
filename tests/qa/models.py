@@ -16,7 +16,7 @@ class MemberTest(TestCase):
 
     def test_init_member(self):
         member = self.member
-        self.assertEqual(member.gender, 0)
+        self.assertEqual(member.gender, 'Unknown')
         self.assertEqual(member.age, 0)
         self.assertEqual(member.occupation, '')
         self.assertEqual(member.education, '')
@@ -27,7 +27,7 @@ class MemberTest(TestCase):
         self.assertEqual(member.interests, '')
         self.assertEqual(member.bio, '')
         self.assertEqual(member.last_login_ip, '')
-        self.assertEqual(member.avatar, '')
+        # self.assertEqual(member.avatar, '')
 
     def test_duplicated_user(self):
         with self.assertRaises(IntegrityError):
@@ -46,7 +46,7 @@ class MemberTest(TestCase):
         member.interests = 'coding,cooking,runing'
         member.bio = 'About myself'
         member.last_login_ip = '127.0.0.1'
-        member.avatar = '/sss/xxx/ggg.png'
+        # member.avatar = '/sss/xxx/ggg.png'
         member.save()
         self.assertEqual(member.gender, 2)
         self.assertEqual(member.age, 20)
@@ -59,7 +59,7 @@ class MemberTest(TestCase):
         self.assertEqual(member.interests, 'coding,cooking,runing')
         self.assertEqual(member.bio, 'About myself')
         self.assertEqual(member.last_login_ip, '127.0.0.1')
-        self.assertEqual(member.avatar, '/sss/xxx/ggg.png')
+        # self.assertEqual(member.avatar, '/sss/xxx/ggg.png')
 
 
 class QuestionTest(TestCase):
