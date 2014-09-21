@@ -7,11 +7,11 @@
 <div class="row">
     <div class="col-md-12">
         <h2>{{ user.username }}'s Profile</h2>
-    {% if is_login_user %}
+    {% if user.is_authenticated %}
         <div>
-        <a href="./edit">Edit</a> |
-        <a href="./avatar/">Edit Avatar</a> |
-        <a href="./account">Edit Account</a>
+            <a href="./edit">Edit</a> |
+            <a href="./avatar/">Edit Avatar</a> |
+            <a href="./account">Edit Account</a>
         </div>
     {% endif %}
 

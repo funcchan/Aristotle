@@ -2,7 +2,7 @@
 #
 # @name: views.py
 # @create: Aug. 25th, 2014
-# @update: Sep. 12th, 2014
+# @update: Sep. 20th, 2014
 # @author: Z. Huang, Liangju
 import logging
 from django.http import Http404, HttpResponse
@@ -66,8 +66,8 @@ class SignInView(View):
         if user has logged in, redirect back to referer page or home page
         """
         if request.user.is_authenticated():
-            ref = request.META.get('HTTP_REFERER')
-            return redirect(ref or '/')
+            ref = request.META.get('HTTP_REFERER') or '/'
+            return redirect(ref)
         form = SignInForm()
         next_url = request.GET.get('next')
         return render(request, 'qa/signin.html',
@@ -79,8 +79,8 @@ class SignInView(View):
         using django auth and user model to login
         """
         form = SignInForm(request.POST)
-        next_url = request.POST.get('next')
-        refer_url = request.META.get('HTTP_REFERER')
+        next_url = request.POST.get('next') or '/'
+        refer_url = request.META.get('HTTP_REFERER') or '/'
         if form.is_valid():
             username = request.POST.get('username')
             password = request.POST.get('password')
@@ -89,9 +89,9 @@ class SignInView(View):
                 ip = request.META['REMOTE_ADDR']
                 login(request, user)
                 Member.objects.filter(user=user).update(last_login_ip=ip)
-                return redirect(next_url or '/')
+                return redirect(next_url)
             else:
-                msg = 'username or password is not correct'
+                msg = 'username and/or password is not correct'
                 messages.error(request, msg)
                 return redirect(refer_url)
         else:
@@ -105,8 +105,8 @@ class SignUpView(View):
         if user has logged in, redirect back to referer page or home page
         """
         if request.user.is_authenticated():
-            ref = request.META.get('HTTP_REFERER')
-            return redirect(ref or '/')
+            ref = request.META.get('HTTP_REFERER') or '/'
+            return redirect(ref)
         form = SignUpForm()
         return render(request, 'qa/signup.html', {'form': form})
 
@@ -120,7 +120,7 @@ class SignUpView(View):
         flash messages
         """
         form = SignUpForm(request.POST)
-        refer_url = request.META.get('HTTP_REFERER')
+        refer_url = request.META.get('HTTP_REFERER') or '/'
         username = request.POST.get('username')
         email = request.POST.get('email')
         password = request.POST.get('password')
@@ -209,7 +209,7 @@ class ResetPasswordView(View):
         to update a user's password. After updating the password, the
         code will be deleted.
         """
-        refer_url = request.META.get('HTTP_REFERER')
+        refer_url = request.META.get('HTTP_REFERER') or '/'
         try:
             if kwargs and 'reset_code' in kwargs:
                 code = kwargs['reset_code']
@@ -265,24 +265,21 @@ class ProfileView(View):
         is a guest, then raise 404 error
         """
         if kwargs and 'user_id' in kwargs:
-
             uid = kwargs['user_id']
             try:
                 user = User.objects.get(id=int(uid))
-                is_login_user = (user == request.user)
             except Exception:
                 raise Http404()
         else:
             user = request.user
-            is_login_user = True
             if user.is_anonymous():
-                raise Http404()
+                return HttpResponse(status=403)
         questions = Question.objects.order_by(
             '-created_time').filter(author=user)
         answers = Answer.objects.order_by(
             '-created_time').filter(author=user)
 
-        if user.member.avatar:
+        if user.member and user.member.avatar:
             avatar = str(user.member.avatar)
         else:
             avatar = qa_settings.DEFAULT_AVATAR
@@ -292,8 +289,7 @@ class ProfileView(View):
                       {'user': user,
                        'questions': questions,
                        'answers': answers,
-                       'avatar_path': avatar_path,
-                       'is_login_user': is_login_user})
+                       'avatar_path': avatar_path})
 
 
 class EditProfileView(View):
@@ -311,7 +307,7 @@ class EditProfileView(View):
             except Exception:
                 raise Http404()
             if user != request.user:
-                return HttpResponse(status=401)
+                return HttpResponse(status=403)
         else:
             user = request.user
         member = user.member
@@ -345,11 +341,11 @@ class EditProfileView(View):
             except Exception:
                 raise Http404()
             if user != request.user:
-                return HttpResponse(status=401)
+                return HttpResponse(status=403)
         else:
             user = request.user
 
-        refer_url = request.META.get('HTTP_REFERER')
+        refer_url = request.META.get('HTTP_REFERER') or '/'
         first_name = request.POST.get('first_name')
         last_name = request.POST.get('last_name')
         age = request.POST.get('age')
@@ -402,7 +398,7 @@ class EditAccountView(View):
             except Exception:
                 raise Http404()
             if user != request.user:
-                return HttpResponse(status=401)
+                return HttpResponse(status=403)
         else:
             user = request.user
         initial = {
@@ -426,10 +422,10 @@ class EditAccountView(View):
             except Exception:
                 raise Http404()
             if user != request.user:
-                return HttpResponse(status=401)
+                return HttpResponse(status=403)
         else:
             user = request.user
-        refer_url = request.META.get('HTTP_REFERER')
+        refer_url = request.META.get('HTTP_REFERER') or '/'
         password = request.POST.get('password')
         username = request.POST.get('username')
         email = request.POST.get('email')
@@ -469,7 +465,7 @@ class EditAvatarView(View):
             except Exception:
                 raise Http404()
             if user != request.user:
-                return HttpResponse(status=401)
+                return HttpResponse(status=403)
         else:
             user = request.user
 
@@ -493,11 +489,11 @@ class EditAvatarView(View):
             except Exception:
                 raise Http404()
             if user != request.user:
-                return HttpResponse(status=401)
+                return HttpResponse(status=403)
         else:
             user = request.user
 
-        refer_url = request.META.get('HTTP_REFERER')
+        refer_url = request.META.get('HTTP_REFERER') or '/'
         form = EditAvatarForm(request.POST, request.FILES)
 
         if form.is_valid():
@@ -772,7 +768,7 @@ class QuestionActionView(View):
             raise Http404()
 
         if question_queryset[0].author != user:
-            return HttpResponse(status=401)
+            return HttpResponse(status=403)
 
         # instead of using prefetch, we can
         # use get_tags method defined in the model
@@ -807,7 +803,7 @@ class QuestionActionView(View):
         """
         qid = kwargs['question_id']
         action = kwargs['action']
-        refer_url = request.META.get('HTTP_REFERER')
+        refer_url = request.META.get('HTTP_REFERER') or '/'
         try:
             qid = int(qid)
         except TypeError:
@@ -844,7 +840,7 @@ class QuestionActionView(View):
         if form.is_valid():
             question = question_queryset[0]
             if request.user != question.author:
-                return HttpResponse(status=401)
+                return HttpResponse(status=403)
             question_queryset.update(
                 title=title, content=content, updated_time=timezone.now())
             if tags:
@@ -887,7 +883,7 @@ class QuestionActionView(View):
         if form.is_valid():
             question = question_queryset[0]
             if request.user != question.author:
-                return HttpResponse(status=401)
+                return HttpResponse(status=403)
             append = QuestionAppend.objects.create(question=question,
                                                    content=content)
             append.save()
@@ -900,7 +896,7 @@ class QuestionActionView(View):
         """Delete a question by its author
         """
         if request.user != question_queryset[0].author:
-            return HttpResponse(status=401)
+            return HttpResponse(status=403)
         question_queryset.delete()
         return redirect('/')
 
@@ -958,7 +954,7 @@ class AskQuestionView(View):
         content = request.POST.get('content')
         tags = request.POST.get('tags')
         user = request.user
-        refer_url = request.META.get('HTTP_REFERER')
+        refer_url = request.META.get('HTTP_REFERER') or '/'
         form = AskQuestionForm(request.POST)
 
         if form.is_valid():
@@ -996,7 +992,7 @@ class AnswerActionView(View):
             if action != 'edit':
                 return redirect('/question/{0}'.format(answer.question.id))
             if answer.author != user:
-                return HttpResponse(status=401)
+                return HttpResponse(status=403)
             initial = {
                 'answer_content': answer.content,
             }
@@ -1018,7 +1014,7 @@ class AnswerActionView(View):
         /answer/<:id>/upvote/
         /answer/<:id>/downvote/
         """
-        refer_url = request.META['HTTP_REFERER']
+        refer_url = request.META.get('HTTP_REFERER') or '/'
         aid = kwargs['answer_id']
         action = kwargs['action']
         try:
@@ -1051,7 +1047,7 @@ class AnswerActionView(View):
         content = request.POST.get('answer_content')
         answer = answer_queryset[0]
         if request.user != answer.author:
-            return HttpResponse(status=401)
+            return HttpResponse(status=403)
         form = EditAnswerForm(request.POST)
         if form.is_valid():
             answer_queryset.update(
@@ -1068,7 +1064,7 @@ class AnswerActionView(View):
         question = answer.question
         redirect_uri = '/question/{0}/'.format(answer.question.id)
         if request.user != question.author:
-            return HttpResponse(status=401)
+            return HttpResponse(status=403)
         # user cannot revoke or change this action
         # it is not a flexiable design
         # question.solved might need a one-to-one relationship
@@ -1104,7 +1100,7 @@ class AnswerActionView(View):
         content = request.POST.get('answer_append_content')
         answer = answer_queryset[0]
         if request.user != answer.author:
-            return HttpResponse(status=401)
+            return HttpResponse(status=403)
 
         form = AppendAnswerForm(request.POST)
         if form.is_valid():
@@ -1121,7 +1117,7 @@ class AnswerActionView(View):
         """
         answer = answer_queryset[0]
         if request.user != answer.author:
-            return HttpResponse(status=401)
+            return HttpResponse(status=403)
         question = answer.question
         if question.solved and answer.accepted:
             question.solved = False

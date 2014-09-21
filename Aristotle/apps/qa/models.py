@@ -2,7 +2,7 @@
 #
 # @name: models.py
 # @create:
-# @update: Sep. 12th, 2014
+# @update: Sep. 20th, 2014
 # @author:
 from django.db import models
 from django.contrib.auth.models import User
@@ -73,13 +73,23 @@ class Member(models.Model):
         return super(Member, self).save(*args, **kwargs)
 
 
-# class Preference(models.Model):
-#     user = models.OneToOneField(User)
-# notifications (w/ email)
-# e.g.
+class Preference(models.Model):
+    user = models.OneToOneField(User)
+    # TODO
 
-# class Privacy(models.Model):
-#     user = models.OneToOneField(User)
+
+class Privacy(models.Model):
+    user = models.OneToOneField(User)
+    # TODO
+
+
+class Score(models.Model):
+    user = models.OneToOneField(User)
+    reputation = models.IntegerField(default=0)
+    # level = models.IntegerField(default=0)
+    # knowledge = models.IntegerField(default=0)
+    # activity = models.IntegerField(default=0)
+
 
 class Activation(models.Model):
     user = models.OneToOneField(User)
