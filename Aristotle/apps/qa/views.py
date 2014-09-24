@@ -348,16 +348,16 @@ class EditProfileView(View):
         refer_url = request.META.get('HTTP_REFERER') or '/'
         first_name = request.POST.get('first_name')
         last_name = request.POST.get('last_name')
-        age = request.POST.get('age')
-        gender = request.POST.get('gender')
-        occupation = request.POST.get('occupation')
-        education = request.POST.get('education')
-        address = request.POST.get('address')
-        phone = request.POST.get('phone')
-        company = request.POST.get('company')
-        website = request.POST.get('website')
-        interests = request.POST.get('interests')
-        bio = request.POST.get('bio')
+        age = request.POST.get('age') or 0
+        gender = request.POST.get('gender') or 'Unknown'
+        occupation = request.POST.get('occupation') or ''
+        education = request.POST.get('education') or ''
+        address = request.POST.get('address') or ''
+        phone = request.POST.get('phone') or ''
+        company = request.POST.get('company') or ''
+        website = request.POST.get('website') or ''
+        interests = request.POST.get('interests') or ''
+        bio = request.POST.get('bio') or ''
         form = EditProfileForm(request.POST)
 
         if form.is_valid():
@@ -379,6 +379,7 @@ class EditProfileView(View):
                 user.member.update()
                 return redirect(refer_url)
             except Exception as e:
+                print(e)
                 messages.error(request, str(e))
                 return redirect(refer_url)
         else:

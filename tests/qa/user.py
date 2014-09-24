@@ -2,7 +2,7 @@
 #
 # @name: views.py
 # @create:
-# @update: Sep. 20th, 2014
+# @update: Sep. 23th, 2014
 # @author: Z. Huang
 from django.test import TestCase
 from django.test import Client
@@ -151,3 +151,60 @@ class EditProfileTest(TestCase):
         self.client.post('/signin/', {'username': 'test1', 'password': 'test'})
         response = self.client.get('/profile/3/edit/')
         self.assertEqual(response.status_code, 404)
+
+    def test_post_not_logged_profile(self):
+        response = self.client.post(
+            '/profile/edit/', {'first_name': 'test_user'})
+        self.assertEqual(response.status_code, 302)
+        response = self.client.post(
+            '/profile/1/edit/', {'first_name': 'test_user'})
+        self.assertEqual(response.status_code, 302)
+
+    def test_post_unauth_id_profile(self):
+        self.client.post('/signin/', {'username': 'test2', 'password': 'test'})
+        response = self.client.post(
+            '/profile/1/edit/', {'first_name': 'test_user'})
+        self.assertEqual(response.status_code, 403)
+        user = User.objects.get(username='test1')
+        self.assertEqual('', user.first_name)
+
+    def test_post_not_exist_id_profile(self):
+        self.client.post('/signin/', {'username': 'test1', 'password': 'test'})
+        response = self.client.post(
+            '/profile/3/edit/', {'first_name': 'test_user'})
+        self.assertEqual(response.status_code, 404)
+
+    def test_post_profile(self):
+        self.client.post('/signin/', {'username': 'test1', 'password': 'test'})
+        data = {
+            'first_name': 'test1',
+            'last_name': 'test2',
+            'age': '25',
+            'gender': 'Male',
+        }
+        self.assertEqual('', self.user1.first_name)
+        self.assertEqual('', self.user1.last_name)
+        self.assertEqual(0, self.user1.member.age)
+        self.assertEqual('Unknown', self.user1.member.gender)
+        response = self.client.post(
+            '/profile/edit/', data)
+        self.assertEqual(response.status_code, 302)
+        user = User.objects.get(username='test1')
+        self.assertEqual('test1', user.first_name)
+        self.assertEqual('test2', user.last_name)
+        self.assertEqual(25, user.member.age)
+        self.assertEqual('Male', user.member.gender)
+        data = {
+            'first_name': 'test2',
+            'last_name': 'test1',
+            'age': '30',
+            'gender': 'Female',
+        }
+        response = self.client.post(
+            '/profile/1/edit/', data)
+        self.assertEqual(response.status_code, 302)
+        user = User.objects.get(username='test1')
+        self.assertEqual('test2', user.first_name)
+        self.assertEqual('test1', user.last_name)
+        self.assertEqual(30, user.member.age)
+        self.assertEqual('Female', user.member.gender)
