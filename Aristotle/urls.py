@@ -2,10 +2,10 @@
 #
 # @name: urls.py
 # @create:
-# @update: Sep. 10th, 2014
-# @author:
+# @update: Sep. 24th, 2014
+# @author: Z. Huang, Liangju
 from django.conf.urls import patterns, include, url
-from Aristotle.apps.qa import views
+from Aristotle.apps.qa.views import user, lists, question
 from django.contrib import admin
 
 admin.autodiscover()
@@ -13,54 +13,50 @@ admin.autodiscover()
 urlpatterns = patterns(
     '',
     url(r'^admin/', include(admin.site.urls)),
-    url(r'^$', views.HomeView.as_view(), name='home'),
-    url(r'^signin/$', views.SignInView.as_view(), name='signin'),
-    url(r'^signup/$', views.SignUpView.as_view(), name='signup'),
-    url(r'^signout/$', views.SignOutView.as_view(), name='signout'),
+    url(r'^signin/$', user.SignInView.as_view(), name='signin'),
+    url(r'^signup/$', user.SignUpView.as_view(), name='signup'),
+    url(r'^signout/$', user.SignOutView.as_view(), name='signout'),
     url(r'^activate/$',
-        views.ActivateView.as_view(), name='activate-index'),
+        user.ActivateView.as_view(), name='activate-index'),
     url(r'^activate/(?P<activation_code>[\w0-9]+)/$',
-        views.ActivateView.as_view(), name='activate'),
+        user.ActivateView.as_view(), name='activate'),
     url(r'^reset/$',
-        views.ResetPasswordView.as_view(), name='reset'),
+        user.ResetPasswordView.as_view(), name='reset'),
     url(r'^reset/(?P<reset_code>[\w0-9]+)/$',
-        views.ResetPasswordView.as_view(), name='reset-password'),
-    url(r'^question/(?P<question_id>[0-9]+)/$', views.QuestionView.as_view(),
+        user.ResetPasswordView.as_view(), name='reset-password'),
+    url(r'^profile/$',
+        user.ProfileView.as_view(), name='profile'),
+    url(r'^profile/(?P<user_id>[0-9]+)/$',
+        user.ProfileView.as_view(), name='profile'),
+    url(r'^profile/edit/$',
+        user.EditProfileView.as_view(), name='edit-profile'),
+    url(r'^profile/(?P<user_id>[0-9]+)/edit/$',
+        user.EditProfileView.as_view(), name='edit-profile'),
+    url(r'^profile/avatar/$',
+        user.EditAvatarView.as_view(), name='edit-avatar'),
+    url(r'^profile/(?P<user_id>[0-9]+)/avatar/$',
+        user.EditAvatarView.as_view(), name='edit-avatar'),
+    url(r'^profile/account/$',
+        user.EditAccountView.as_view(), name='edit-account'),
+    url(r'^profile/(?P<user_id>[0-9]+)/account/$',
+        user.EditAccountView.as_view(), name='edit-account'),
+    url(r'^question/(?P<question_id>[0-9]+)/$',
+        question.QuestionView.as_view(),
         name='question-view'),
     url(r'^question/ask/$',
-        views.AskQuestionView.as_view(), name='ask-question'),
+        question.AskQuestionView.as_view(), name='ask-question'),
     url(r'^question/(?P<question_id>[0-9]+)/(?P<action>answer|edit|append|delete|comment|upvote|downvote)/$',
-        views.QuestionActionView.as_view(),
+        question.QuestionActionView.as_view(),
         name='question-action'),
     url(r'^answer/(?P<answer_id>[0-9]+)/(?P<action>accept|edit|comment|delete|append|upvote|downvote)/$',
-        views.AnswerActionView.as_view(), name='answer-action'),
-    url(r'^questions/$', views.QuestionsView.as_view(), name='questions'),
+        question.AnswerActionView.as_view(), name='answer-action'),
+    url(r'^$', lists.HomeView.as_view(), name='home'),
+    url(r'^questions/$', lists.QuestionsView.as_view(), name='questions'),
     url(r'^questions/tagged/(?P<tag_name>[\w0-9\-]+)/$',
-        views.TaggedQuestionsView.as_view(), name='tagged-questions'),
-    url(r'^tags/$', views.TagsView.as_view(), name='tags'),
-    url(r'^profile/$',
-        views.ProfileView.as_view(), name='profile'),
-    url(r'^profile/(?P<user_id>[0-9]+)/$',
-        views.ProfileView.as_view(), name='profile'),
-
-    url(r'^profile/edit/$',
-        views.EditProfileView.as_view(), name='edit-profile'),
-    url(r'^profile/(?P<user_id>[0-9]+)/edit/$',
-        views.EditProfileView.as_view(), name='edit-profile'),
-
-    url(r'^profile/avatar/$',
-        views.EditAvatarView.as_view(), name='edit-avatar'),
-    url(r'^profile/(?P<user_id>[0-9]+)/avatar/$',
-        views.EditAvatarView.as_view(), name='edit-avatar'),
-
-    url(r'^profile/account/$',
-        views.EditAccountView.as_view(), name='edit-account'),
-    url(r'^profile/(?P<user_id>[0-9]+)/account/$',
-        views.EditAccountView.as_view(), name='edit-account'),
-
-    url(r'^search/$', views.SearchView.as_view(), name='search'),
-
-    url(r'^users/$', views.UsersListView.as_view(), name='user-list'),
-    url(r'^users/?query=[\w0-9]+/$', views.UsersListView.as_view(),
-        name='user-list')
+        lists.TaggedQuestionsView.as_view(), name='tagged-questions'),
+    url(r'^tags/$', lists.TagsView.as_view(), name='tags'),
+    url(r'^users/$', lists.UsersView.as_view(), name='user-list'),
+    url(r'^users/?query=[\w0-9]+/$', lists.UsersView.as_view(),
+        name='user-list'),
+    url(r'^search/$', lists.SearchView.as_view(), name='search'),
 )
