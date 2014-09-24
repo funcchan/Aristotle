@@ -2,7 +2,7 @@
 #
 # @name: views.py
 # @create: Aug. 25th, 2014
-# @update: Sep. 20th, 2014
+# @update: Sep. 24th, 2014
 # @author: Z. Huang, Liangju
 import logging
 from django.http import Http404, HttpResponse
@@ -379,7 +379,6 @@ class EditProfileView(View):
                 user.member.update()
                 return redirect(refer_url)
             except Exception as e:
-                print(e)
                 messages.error(request, str(e))
                 return redirect(refer_url)
         else:

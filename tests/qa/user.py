@@ -2,7 +2,7 @@
 #
 # @name: views.py
 # @create:
-# @update: Sep. 23th, 2014
+# @update: Sep. 24th, 2014
 # @author: Z. Huang
 from django.test import TestCase
 from django.test import Client
@@ -119,40 +119,40 @@ class EditProfileTest(TestCase):
 
     def setUp(self):
         self.client = Client()
-        self.user1 = User.objects.create_user(
+        user1 = User.objects.create_user(
             username='test1', password='test', email='test1@test.com')
-        Member.objects.create(user=self.user1).save()
-        self.user2 = User.objects.create_user(
+        Member.objects.create(user=user1).save()
+        user2 = User.objects.create_user(
             username='test2', password='test', email='test2@test.com')
-        Member.objects.create(user=self.user2).save()
+        Member.objects.create(user=user2).save()
 
-    def test_get_not_logged_profile(self):
+    def test_get_not_login(self):
         response = self.client.get('/profile/edit/')
         self.assertEqual(response.status_code, 302)
         response = self.client.get('/profile/1/edit/')
         self.assertEqual(response.status_code, 302)
 
-    def test_get_profile(self):
+    def test_get(self):
         self.client.post('/signin/', {'username': 'test1', 'password': 'test'})
         response = self.client.get('/profile/edit/')
         self.assertEqual(response.status_code, 200)
 
-    def test_get_id_profile(self):
+    def test_get_id(self):
         self.client.post('/signin/', {'username': 'test1', 'password': 'test'})
         response = self.client.get('/profile/1/edit/')
         self.assertEqual(response.status_code, 200)
 
-    def test_get_unauth_id_profile(self):
+    def test_get_not_auth_id(self):
         self.client.post('/signin/', {'username': 'test2', 'password': 'test'})
         response = self.client.get('/profile/1/edit/')
         self.assertEqual(response.status_code, 403)
 
-    def test_get_not_exist_id_profile(self):
+    def test_get_not_exist_id(self):
         self.client.post('/signin/', {'username': 'test1', 'password': 'test'})
         response = self.client.get('/profile/3/edit/')
         self.assertEqual(response.status_code, 404)
 
-    def test_post_not_logged_profile(self):
+    def test_post_not_login(self):
         response = self.client.post(
             '/profile/edit/', {'first_name': 'test_user'})
         self.assertEqual(response.status_code, 302)
@@ -160,7 +160,7 @@ class EditProfileTest(TestCase):
             '/profile/1/edit/', {'first_name': 'test_user'})
         self.assertEqual(response.status_code, 302)
 
-    def test_post_unauth_id_profile(self):
+    def test_post_not_auth_id(self):
         self.client.post('/signin/', {'username': 'test2', 'password': 'test'})
         response = self.client.post(
             '/profile/1/edit/', {'first_name': 'test_user'})
@@ -168,13 +168,13 @@ class EditProfileTest(TestCase):
         user = User.objects.get(username='test1')
         self.assertEqual('', user.first_name)
 
-    def test_post_not_exist_id_profile(self):
+    def test_post_not_exist_id(self):
         self.client.post('/signin/', {'username': 'test1', 'password': 'test'})
         response = self.client.post(
             '/profile/3/edit/', {'first_name': 'test_user'})
         self.assertEqual(response.status_code, 404)
 
-    def test_post_profile(self):
+    def test_post(self):
         self.client.post('/signin/', {'username': 'test1', 'password': 'test'})
         data = {
             'first_name': 'test1',
@@ -182,10 +182,11 @@ class EditProfileTest(TestCase):
             'age': '25',
             'gender': 'Male',
         }
-        self.assertEqual('', self.user1.first_name)
-        self.assertEqual('', self.user1.last_name)
-        self.assertEqual(0, self.user1.member.age)
-        self.assertEqual('Unknown', self.user1.member.gender)
+        user = User.objects.get(username='test1')
+        self.assertEqual('', user.first_name)
+        self.assertEqual('', user.last_name)
+        self.assertEqual(0, user.member.age)
+        self.assertEqual('Unknown', user.member.gender)
         response = self.client.post(
             '/profile/edit/', data)
         self.assertEqual(response.status_code, 302)
@@ -194,12 +195,20 @@ class EditProfileTest(TestCase):
         self.assertEqual('test2', user.last_name)
         self.assertEqual(25, user.member.age)
         self.assertEqual('Male', user.member.gender)
+
+    def test_post_id(self):
+        self.client.post('/signin/', {'username': 'test1', 'password': 'test'})
         data = {
             'first_name': 'test2',
             'last_name': 'test1',
             'age': '30',
             'gender': 'Female',
         }
+        user = User.objects.get(username='test1')
+        self.assertEqual('', user.first_name)
+        self.assertEqual('', user.last_name)
+        self.assertEqual(0, user.member.age)
+        self.assertEqual('Unknown', user.member.gender)
         response = self.client.post(
             '/profile/1/edit/', data)
         self.assertEqual(response.status_code, 302)
@@ -208,3 +217,116 @@ class EditProfileTest(TestCase):
         self.assertEqual('test1', user.last_name)
         self.assertEqual(30, user.member.age)
         self.assertEqual('Female', user.member.gender)
+
+
+class EditAccountTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        user1 = User.objects.create_user(
+            username='test1', password='test', email='test1@test.com')
+        Member.objects.create(user=user1).save()
+        user2 = User.objects.create_user(
+            username='test2', password='test', email='test2@test.com')
+        Member.objects.create(user=user2).save()
+
+    def test_get(self):
+        self.client.post('/signin/', {'username': 'test1', 'password': 'test'})
+        response = self.client.get('/profile/account/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_get_id(self):
+        self.client.post('/signin/', {'username': 'test1', 'password': 'test'})
+        response = self.client.get('/profile/1/account/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_get_not_login(self):
+        response = self.client.get('/profile/account/')
+        self.assertEqual(response.status_code, 302)
+        response = self.client.get('/profile/1/account/')
+        self.assertEqual(response.status_code, 302)
+
+    def test_get_not_exist_id(self):
+        self.client.post('/signin/', {'username': 'test1', 'password': 'test'})
+        response = self.client.get('/profile/3/account/')
+        self.assertEqual(response.status_code, 404)
+
+    def test_get_not_auth_id(self):
+        self.client.post('/signin/', {'username': 'test2', 'password': 'test'})
+        response = self.client.get('/profile/1/account/')
+        self.assertEqual(response.status_code, 403)
+
+    def test_post_not_login(self):
+        response = self.client.post(
+            '/profile/account/', {'password': 'test'})
+        self.assertEqual(response.status_code, 302)
+        response = self.client.post(
+            '/profile/1/account/', {'username': 'test1'})
+        self.assertEqual(response.status_code, 302)
+
+    def test_post_not_exist_id(self):
+        self.client.post('/signin/', {'username': 'test1', 'password': 'test'})
+        response = self.client.post(
+            '/profile/3/account/', {'username': 'test3'})
+        self.assertEqual(response.status_code, 404)
+
+    def test_post_not_auth_id(self):
+        self.client.post('/signin/', {'username': 'test2', 'password': 'test'})
+        response = self.client.post(
+            '/profile/1/account/', {'username': 'test2'})
+        self.assertEqual(response.status_code, 403)
+
+    def test_post_not_correct_password(self):
+        self.client.post('/signin/', {'username': 'test1', 'password': 'test'})
+        data = {
+            'password': 'test1',
+            'username': 'test1',
+            'email': 'test3@test.com',
+            'newpassword': 'test2',
+            'repassword': 'test2'
+        }
+        user = User.objects.get(username='test1')
+        self.assertEqual('test1@test.com', user.email)
+        response = self.client.post(
+            '/profile/account/', data)
+        self.assertEqual(response.status_code, 302)
+        user = User.objects.get(username='test1')
+        self.assertNotEqual('test3@test.com', user.email)
+
+    def test_post(self):
+        self.client.post('/signin/', {'username': 'test1', 'password': 'test'})
+        data = {
+            'password': 'test',
+            'username': 'test1',
+            'email': 'test@test.com',
+            'newpassword': 'test1',
+            'repassword': 'test1'
+        }
+        old_session = self.client.session
+        user = User.objects.get(username='test1')
+        self.assertEqual('test1@test.com', user.email)
+        response = self.client.post(
+            '/profile/account/', data)
+        self.assertEqual(response.status_code, 302)
+        self.assertNotEqual(self.client.session, old_session)
+        user = User.objects.get(username='test1')
+        self.assertEqual('test@test.com', user.email)
+
+    def test_post_id(self):
+        self.client.post('/signin/', {'username': 'test2', 'password': 'test'})
+        data = {
+            'password': 'test',
+            'username': 'test2',
+            'email': 'test5@test.com',
+            'newpassword': 'test2',
+            'repassword': 'test2'
+        }
+        old_session = self.client.session
+        user = User.objects.get(username='test2')
+        self.assertEqual('test2@test.com', user.email)
+        response = self.client.post(
+            '/profile/2/account/', data)
+        self.assertEqual(response.status_code, 302)
+        self.assertNotEqual(self.client.session, old_session)
+        user = User.objects.get(username='test2')
+        self.assertEqual('test5@test.com', user.email)
