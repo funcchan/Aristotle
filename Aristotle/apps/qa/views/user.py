@@ -63,6 +63,7 @@ class SignInView(View):
             else:
                 msg = 'username and/or password is not correct'
                 messages.error(request, msg)
+                logger.error(msg)
                 return redirect(refer_url)
         else:
             return form_errors_handler(request, form, refer_url)
@@ -107,6 +108,7 @@ class SignUpView(View):
                 EmailNotification(user).send_verfication()
                 return redirect('/signin/')
             except Exception as e:
+                logger.error(str(e))
                 messages.error(request, str(e))
                 return redirect(refer_url)
         else:
@@ -138,10 +140,12 @@ class ProfileView(View):
             try:
                 user = User.objects.get(id=int(uid))
             except Exception:
+                logger.error('user does not exist')
                 raise Http404()
         else:
             user = request.user
             if user.is_anonymous():
+                logger.error('not authenticated')
                 return HttpResponse(status=403)
         questions = Question.objects.order_by(
             '-created_time').filter(author=user)
@@ -174,8 +178,10 @@ class EditProfileView(View):
             try:
                 user = User.objects.get(id=int(uid))
             except Exception:
+                logger.error('user does not exist')
                 raise Http404()
             if user != request.user:
+                logger.error('not authenticated')
                 return HttpResponse(status=403)
         else:
             user = request.user
@@ -208,8 +214,10 @@ class EditProfileView(View):
             try:
                 user = User.objects.get(id=int(uid))
             except Exception:
+                logger.error('user does not exist')
                 raise Http404()
             if user != request.user:
+                logger.error('not authenticated')
                 return HttpResponse(status=403)
         else:
             user = request.user
@@ -248,6 +256,7 @@ class EditProfileView(View):
                 user.member.update()
                 return redirect(refer_url)
             except Exception as e:
+                logger.error(str(e))
                 messages.error(request, str(e))
                 return redirect(refer_url)
         else:
@@ -265,8 +274,10 @@ class EditAccountView(View):
             try:
                 user = User.objects.get(id=int(uid))
             except Exception:
+                logger.error('user does not exist')
                 raise Http404()
             if user != request.user:
+                logger.error('not authenticated')
                 return HttpResponse(status=403)
         else:
             user = request.user
@@ -289,8 +300,10 @@ class EditAccountView(View):
             try:
                 user = User.objects.get(id=int(uid))
             except Exception:
+                logger.error('user does not exist')
                 raise Http404()
             if user != request.user:
+                logger.error('not authenticated')
                 return HttpResponse(status=403)
         else:
             user = request.user
@@ -314,6 +327,7 @@ class EditAccountView(View):
                 user.save()
                 return redirect('/signout/')
             except Exception as e:
+                logger.error(str(e))
                 messages.error(request, str(e))
                 return redirect(refer_url)
         else:
@@ -332,8 +346,10 @@ class EditAvatarView(View):
             try:
                 user = User.objects.get(id=int(uid))
             except Exception:
+                logger.error('user does not exist')
                 raise Http404()
             if user != request.user:
+                logger.error('not authenticated')
                 return HttpResponse(status=403)
         else:
             user = request.user
@@ -356,8 +372,10 @@ class EditAvatarView(View):
             try:
                 user = User.objects.get(id=int(uid))
             except Exception:
+                logger.error('user does not exist')
                 raise Http404()
             if user != request.user:
+                logger.error('not authenticated')
                 return HttpResponse(status=403)
         else:
             user = request.user
@@ -374,6 +392,7 @@ class EditAvatarView(View):
                 user.member.save_avatar()
                 return redirect(refer_url)
             except Exception as e:
+                logger.error(str(e))
                 messages.error(request, str(e))
                 return redirect(refer_url)
         else:
@@ -405,6 +424,7 @@ class ActivateView(View):
                     msg = 'The activation code has expired'
                     raise Exception(msg)
             except Exception as e:
+                logger.error(str(e))
                 messages.error(request, str(e))
                 # TODO
                 # we need another page to show errors
@@ -427,6 +447,7 @@ class ResetPasswordView(View):
             code = kwargs['reset_code']
             result = ResetPassword.objects.filter(code=code)
             if not result or result[0].expire_time < timezone.now():
+                logger.error('code does not exist or has expired')
                 raise Http404()
             form = ResetPasswordForm()
             return render(request, 'qa/reset_password.html',
@@ -477,5 +498,6 @@ class ResetPasswordView(View):
                 else:
                     return form_errors_handler(request, form, refer_url)
         except Exception as e:
+            logger.error(str(e))
             messages.error(request, str(e))
             return redirect(refer_url)

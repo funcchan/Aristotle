@@ -65,7 +65,8 @@ class AskQuestionView(View):
                         tag.save()
                 return redirect('/question/{0}/'.format(question.id))
             except Exception as e:
-                messages.error(request, e)
+                logger.error(str(e))
+                messages.error(request, str(e))
                 return redirect(refer_url)
         else:
             return form_errors_handler(request, form, refer_url)
@@ -81,11 +82,13 @@ class QuestionView(View):
         try:
             qid = int(qid)
         except TypeError:
+            logger.error('question does not exist')
             raise Http404()
 
         question_queryset = Question.objects.filter(id=qid)
 
         if not question_queryset:
+            logger.error('question does not exist')
             raise Http404()
 
         try:
@@ -194,6 +197,7 @@ class QuestionActionView(View):
         try:
             qid = int(qid)
         except TypeError:
+            logger.error('question does not exist')
             raise Http404()
 
         if action != 'edit':
@@ -201,9 +205,11 @@ class QuestionActionView(View):
 
         question_queryset = Question.objects.filter(id=qid)
         if not question_queryset:
+            logger.error('question does not exist')
             raise Http404()
 
         if question_queryset[0].author != user:
+            logger.error('not authorized')
             return HttpResponse(status=403)
 
         # instead of using prefetch, we can
@@ -243,6 +249,7 @@ class QuestionActionView(View):
         try:
             qid = int(qid)
         except TypeError:
+            logger.error('question does not exist')
             raise Http404()
         try:
             question_queryset = Question.objects.filter(id=qid)
@@ -262,6 +269,7 @@ class QuestionActionView(View):
             elif action == 'downvote':
                 return self._vote(request, question_queryset, False)
         except Exception as e:
+            logger.error(str(e))
             messages.error(request, str(e))
             return redirect(refer_url)
 
@@ -276,6 +284,7 @@ class QuestionActionView(View):
         if form.is_valid():
             question = question_queryset[0]
             if request.user != question.author:
+                logger.error('not authorized')
                 return HttpResponse(status=403)
             question_queryset.update(
                 title=title, content=content, updated_time=timezone.now())
@@ -319,6 +328,7 @@ class QuestionActionView(View):
         if form.is_valid():
             question = question_queryset[0]
             if request.user != question.author:
+                logger.error('not authorized')
                 return HttpResponse(status=403)
             append = QuestionAppend.objects.create(question=question,
                                                    content=content)
@@ -332,6 +342,7 @@ class QuestionActionView(View):
         """Delete a question by its author
         """
         if request.user != question_queryset[0].author:
+            logger.error('not authorized')
             return HttpResponse(status=403)
         question_queryset.delete()
         return redirect('/')
@@ -382,6 +393,7 @@ class AnswerActionView(View):
         try:
             aid = int(aid)
         except TypeError:
+            logger.error('answer does not exist')
             raise Http404()
         try:
             answer = Answer.objects.get(id=aid)
@@ -416,6 +428,7 @@ class AnswerActionView(View):
         try:
             aid = int(aid)
         except TypeError:
+            logger.error('answer does not exist')
             raise Http404()
         try:
             answer_queryset = Answer.objects.filter(id=aid)
@@ -434,6 +447,7 @@ class AnswerActionView(View):
             elif action == 'downvote':
                 return self._vote(request, answer_queryset, False)
         except Exception as e:
+            logger.error(str(e))
             messages.error(request, str(e))
             return redirect(refer_url)
 
@@ -443,6 +457,7 @@ class AnswerActionView(View):
         content = request.POST.get('answer_content')
         answer = answer_queryset[0]
         if request.user != answer.author:
+            logger.error('not authorized')
             return HttpResponse(status=403)
         form = EditAnswerForm(request.POST)
         if form.is_valid():
@@ -460,6 +475,7 @@ class AnswerActionView(View):
         question = answer.question
         redirect_uri = '/question/{0}/'.format(answer.question.id)
         if request.user != question.author:
+            logger.error('not authorized')
             return HttpResponse(status=403)
         # user cannot revoke or change this action
         # it is not a flexiable design
@@ -496,6 +512,7 @@ class AnswerActionView(View):
         content = request.POST.get('answer_append_content')
         answer = answer_queryset[0]
         if request.user != answer.author:
+            logger.error('not authorized')
             return HttpResponse(status=403)
 
         form = AppendAnswerForm(request.POST)
@@ -513,6 +530,7 @@ class AnswerActionView(View):
         """
         answer = answer_queryset[0]
         if request.user != answer.author:
+            logger.error('not authorized')
             return HttpResponse(status=403)
         question = answer.question
         if question.solved and answer.accepted:

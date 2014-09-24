@@ -4,6 +4,7 @@
 # @create: Sep. 4th, 2014
 # @update: Sep. 24th, 2014
 # @author: hitigon@gmail.com
+import logging
 import re
 import time
 import calendar
@@ -14,6 +15,8 @@ from datetime import timedelta
 from django.utils import timezone
 from django.contrib import messages
 from django.shortcuts import redirect
+
+logger = logging.getLogger(__name__)
 
 
 def parse_listed_strs(strs, delim=None):
@@ -50,5 +53,6 @@ def form_errors_handler(request, form, refer_url):
     for field, errors in form.errors.items():
         for error in errors:
             msg = '%s: %s' % (field, error)
+            logger.error(msg)
             messages.error(request, msg)
     return redirect(refer_url)
