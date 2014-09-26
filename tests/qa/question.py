@@ -6,17 +6,17 @@
 # @author: Z. Huang
 from django.test import TestCase
 from django.test import Client
-from django.contrib.auth.models import User
-from Aristotle.apps.qa.models import Member
 
 
 class AskQuestionTest(TestCase):
 
     def setUp(self):
         self.client = Client()
-        user = User.objects.create_user(
-            username='test', password='test', email='test@test.com')
-        Member.objects.create(user=user).save()
+        data = {'username': 'test',
+                'email': 'test@gmail.com',
+                'password': 'test',
+                'repassword': 'test'}
+        self.client.post('/signup/', data)
 
     def test_get_not_login(self):
         response = self.client.get('/question/ask/')
@@ -27,17 +27,24 @@ class AskQuestionTest(TestCase):
         response = self.client.get('/question/ask/')
         self.assertEqual(response.status_code, 200)
 
+    def test_post(self):
+        pass
+
 
 class QuestionTest(TestCase):
 
     def setUp(self):
         self.client = Client()
-        user1 = User.objects.create_user(
-            username='test1', password='test', email='test1@test.com')
-        Member.objects.create(user=user1).save()
-        user2 = User.objects.create_user(
-            username='test2', password='test', email='test2@test.com')
-        Member.objects.create(user=user2).save()
+        user1_data = {'username': 'test1',
+                      'email': 'test1@test.com',
+                      'password': 'test',
+                      'repassword': 'test'}
+        self.client.post('/signup/', user1_data)
+        user2_data = {'username': 'test2',
+                      'email': 'test2@test.com',
+                      'password': 'test',
+                      'repassword': 'test'}
+        self.client.post('/signup/', user2_data)
         self.client.post('/signin/', {'username': 'test1', 'password': 'test'})
         question_data = {
             'title': 'test',
@@ -63,3 +70,91 @@ class QuestionTest(TestCase):
     def test_get_not_exist(self):
         response = self.client.get('/question/1024/')
         self.assertEqual(response.status_code, 404)
+
+
+class QuestionActionTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        user1_data = {'username': 'test1',
+                      'email': 'test1@test.com',
+                      'password': 'test',
+                      'repassword': 'test'}
+        self.client.post('/signup/', user1_data)
+        user2_data = {'username': 'test2',
+                      'email': 'test2@test.com',
+                      'password': 'test',
+                      'repassword': 'test'}
+        self.client.post('/signup/', user2_data)
+        self.client.post('/signin/', {'username': 'test1', 'password': 'test'})
+        question_data = {
+            'title': 'test',
+            'content': 'test content',
+            'tags': 'test1, test2, test3',
+        }
+        self.client.post('/question/ask/', question_data)
+
+    def test_get_not_login(self):
+        pass
+
+    def test_get_not_exist(self):
+        pass
+
+    def test_get_not_auth(self):
+        pass
+
+    def test_get_not_edit_action(self):
+        pass
+
+    def test_get(self):
+        pass
+
+    def test_post_not_login(self):
+        pass
+
+    def test_post_not_exist(self):
+        pass
+
+    def test_post_not_auth(self):
+        pass
+
+    def test_post_edit(self):
+        pass
+
+    def test_post_comment(self):
+        pass
+
+    def test_post_append(self):
+        pass
+
+    def test_post_delete(self):
+        pass
+
+    def test_post_answer(self):
+        pass
+
+    def test_post_vote(self):
+        pass
+
+
+class AnswerActionTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        user1_data = {'username': 'test1',
+                      'email': 'test1@test.com',
+                      'password': 'test',
+                      'repassword': 'test'}
+        self.client.post('/signup/', user1_data)
+        user2_data = {'username': 'test2',
+                      'email': 'test2@test.com',
+                      'password': 'test',
+                      'repassword': 'test'}
+        self.client.post('/signup/', user2_data)
+        self.client.post('/signin/', {'username': 'test1', 'password': 'test'})
+        question_data = {
+            'title': 'test',
+            'content': 'test content',
+            'tags': 'test1, test2, test3',
+        }
+        self.client.post('/question/ask/', question_data)

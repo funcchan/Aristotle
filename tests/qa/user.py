@@ -8,7 +8,6 @@ from django.test import TestCase
 from django.test import Client
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
-from Aristotle.apps.qa.models import Member
 
 
 class SignInTest(TestCase):
@@ -77,8 +76,11 @@ class SignOutTest(TestCase):
 
     def setUp(self):
         self.client = Client()
-        self.user = User.objects.create_user(
-            username='test', password='test', email='test@test.com')
+        data = {'username': 'test',
+                'email': 'test@gmail.com',
+                'password': 'test',
+                'repassword': 'test'}
+        self.client.post('/signup/', data)
         self.client.login(username='test', password='test')
 
     def test_signout(self):
@@ -93,9 +95,11 @@ class ProfileTest(TestCase):
 
     def setUp(self):
         self.client = Client()
-        self.user = User.objects.create_user(
-            username='test', password='test', email='test@test.com')
-        Member.objects.create(user=self.user).save()
+        data = {'username': 'test',
+                'email': 'test@gmail.com',
+                'password': 'test',
+                'repassword': 'test'}
+        self.client.post('/signup/', data)
 
     def test_profile(self):
         response = self.client.get('/profile/1/')
@@ -119,12 +123,16 @@ class EditProfileTest(TestCase):
 
     def setUp(self):
         self.client = Client()
-        user1 = User.objects.create_user(
-            username='test1', password='test', email='test1@test.com')
-        Member.objects.create(user=user1).save()
-        user2 = User.objects.create_user(
-            username='test2', password='test', email='test2@test.com')
-        Member.objects.create(user=user2).save()
+        user1_data = {'username': 'test1',
+                      'email': 'test1@test.com',
+                      'password': 'test',
+                      'repassword': 'test'}
+        self.client.post('/signup/', user1_data)
+        user2_data = {'username': 'test2',
+                      'email': 'test2@test.com',
+                      'password': 'test',
+                      'repassword': 'test'}
+        self.client.post('/signup/', user2_data)
 
     def test_get_not_login(self):
         response = self.client.get('/profile/edit/')
@@ -223,12 +231,16 @@ class EditAccountTest(TestCase):
 
     def setUp(self):
         self.client = Client()
-        user1 = User.objects.create_user(
-            username='test1', password='test', email='test1@test.com')
-        Member.objects.create(user=user1).save()
-        user2 = User.objects.create_user(
-            username='test2', password='test', email='test2@test.com')
-        Member.objects.create(user=user2).save()
+        user1_data = {'username': 'test1',
+                      'email': 'test1@test.com',
+                      'password': 'test',
+                      'repassword': 'test'}
+        self.client.post('/signup/', user1_data)
+        user2_data = {'username': 'test2',
+                      'email': 'test2@test.com',
+                      'password': 'test',
+                      'repassword': 'test'}
+        self.client.post('/signup/', user2_data)
 
     def test_get(self):
         self.client.post('/signin/', {'username': 'test1', 'password': 'test'})
@@ -336,12 +348,16 @@ class EditAvatarView(TestCase):
 
     def setUp(self):
         self.client = Client()
-        user1 = User.objects.create_user(
-            username='test1', password='test', email='test1@test.com')
-        Member.objects.create(user=user1).save()
-        user2 = User.objects.create_user(
-            username='test2', password='test', email='test2@test.com')
-        Member.objects.create(user=user2).save()
+        user1_data = {'username': 'test1',
+                      'email': 'test1@test.com',
+                      'password': 'test',
+                      'repassword': 'test'}
+        self.client.post('/signup/', user1_data)
+        user2_data = {'username': 'test2',
+                      'email': 'test2@test.com',
+                      'password': 'test',
+                      'repassword': 'test'}
+        self.client.post('/signup/', user2_data)
 
     def test_get_not_login(self):
         response = self.client.get('/profile/avatar/')
