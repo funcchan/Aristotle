@@ -2,7 +2,7 @@
 #
 # @name:  question.py
 # @create: 25 September 2014 (Thursday)
-# @update: 25 September 2014 (Thursday)
+# @update: 26 September 2014 (Thursday)
 # @author: Z. Huang
 from django.test import TestCase
 from django.test import Client
@@ -93,21 +93,32 @@ class QuestionActionTest(TestCase):
             'tags': 'test1, test2, test3',
         }
         self.client.post('/question/ask/', question_data)
+        self.client.get('/signout/')
 
     def test_get_not_login(self):
-        pass
+        response = self.client.get('/question/1/edit/')
+        self.assertEqual(response.status_code, 302)
 
     def test_get_not_exist(self):
-        pass
+        self.client.post('/signin/', {'username': 'test1', 'password': 'test'})
+        response = self.client.get('/question/2/edit/')
+        self.assertEqual(response.status_code, 404)
 
     def test_get_not_auth(self):
-        pass
+        self.client.post('/signin/', {'username': 'test2', 'password': 'test'})
+        response = self.client.get('/question/1/edit/')
+        self.assertEqual(response.status_code, 403)
 
     def test_get_not_edit_action(self):
-        pass
+        self.client.post('/signin/', {'username': 'test1', 'password': 'test'})
+        response = self.client.get('/question/1/append/')
+        self.assertEqual(response.status_code, 302)
 
     def test_get(self):
-        pass
+        self.client.post('/signin/', {'username': 'test1', 'password': 'test'})
+        response = self.client.get('/question/1/edit/')
+        self.assertEqual(response.status_code, 200)
+        # TODO test form contents
 
     def test_post_not_login(self):
         pass
@@ -158,3 +169,57 @@ class AnswerActionTest(TestCase):
             'tags': 'test1, test2, test3',
         }
         self.client.post('/question/ask/', question_data)
+        self.client.post('/signin/', {'username': 'test1', 'password': 'test'})
+        answer_data = {
+            'content': 'test answer 1',
+        }
+        self.client.post('/question/1/answer', answer_data)
+        self.client.get('/signout/')
+        self.client.post('/signin/', {'username': 'test2', 'password': 'test'})
+        answer_data = {
+            'content': 'test answer 2',
+        }
+        self.client.post('/question/1/answer', answer_data)
+        self.client.get('/signout/')
+
+    def test_get_not_login(self):
+        pass
+
+    def test_get_not_exist(self):
+        pass
+
+    def test_get_not_auth(self):
+        pass
+
+    def test_get_not_edit_action(self):
+        pass
+
+    def test_get(self):
+        pass
+
+    def test_post_not_login(self):
+        pass
+
+    def test_post_not_exist(self):
+        pass
+
+    def test_post_not_auth(self):
+        pass
+
+    def test_post_edit(self):
+        pass
+
+    def test_post_comment(self):
+        pass
+
+    def test_post_append(self):
+        pass
+
+    def test_post_delete(self):
+        pass
+
+    def test_post_vote(self):
+        pass
+
+    def test_post_accept(self):
+        pass
