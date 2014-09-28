@@ -2,7 +2,7 @@
 #
 # @name: views.py
 # @create:
-# @update: Sep. 25th, 2014
+# @update: Sep. 28th, 2014
 # @author: Z. Huang
 from django.test import TestCase
 from django.test import Client
@@ -17,17 +17,17 @@ class SignInTest(TestCase):
         self.user = User.objects.create_user(
             username='test', password='test', email='test@test.com')
 
-    def test_signin(self):
+    def test_get(self):
         response = self.client.get('/signin/')
         self.assertEqual(response.status_code, 200)
 
-    def test_error(self):
+    def test_wrong_username_or_password(self):
         response = self.client.post('/signin/',
                                     {'username': 'wrong', 'password': 'wrong'})
         self.assertEqual(response.status_code, 302)
         self.assertEqual(self.client.session, {})
 
-    def test_normal(self):
+    def test_post(self):
         response = self.client.post('/signin/',
                                     {'username': 'test', 'password': 'test'})
         self.assertEqual(response.status_code, 302)
@@ -39,11 +39,11 @@ class SignUpTest(TestCase):
     def setUp(self):
         self.client = Client()
 
-    def test_signup(self):
+    def test_get(self):
         response = self.client.get('/signup/')
         self.assertEqual(response.status_code, 200)
 
-    def test_normal(self):
+    def test_post(self):
         data = {'username': 'test',
                 'email': 'test@gmail.com',
                 'password': 'test',
@@ -53,7 +53,8 @@ class SignUpTest(TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(user.email, 'test@gmail.com')
 
-    def test_miss_fields(self):
+    def test_post_miss_fields(self):
+        # form tests
         data = {'username': 'test',
                 'password': 'test'}
         response = self.client.post('/signup/', data)
@@ -61,7 +62,7 @@ class SignUpTest(TestCase):
             User.objects.get(username='test')
         self.assertEqual(response.status_code, 302)
 
-    def test_not_identical_passwords(self):
+    def test_post_not_identical_passwords(self):
         data = {'username': 'test',
                 'email': 'test@gmail.com',
                 'password': 'test',
@@ -83,7 +84,7 @@ class SignOutTest(TestCase):
         self.client.post('/signup/', data)
         self.client.login(username='test', password='test')
 
-    def test_signout(self):
+    def test_get(self):
         self.assertNotEqual(self.client.session, {})
         old_session = self.client.session
         response = self.client.get('/signout/')
@@ -101,20 +102,20 @@ class ProfileTest(TestCase):
                 'repassword': 'test'}
         self.client.post('/signup/', data)
 
-    def test_profile(self):
+    def test_get(self):
         response = self.client.get('/profile/1/')
         self.assertEqual(response.status_code, 200)
 
-    def test_not_exist(self):
+    def test_get_not_exist(self):
         response = self.client.get('/profile/2/')
         self.assertEqual(response.status_code, 404)
 
-    def test_logged(self):
+    def test_post(self):
         self.client.post('/signin/', {'username': 'test', 'password': 'test'})
         response = self.client.get('/profile/')
         self.assertEqual(response.status_code, 200)
 
-    def test_not_logged(self):
+    def test_get_not_login(self):
         response = self.client.get('/profile/')
         self.assertEqual(response.status_code, 403)
 
@@ -384,3 +385,93 @@ class EditAvatarView(TestCase):
         self.client.post('/signin/', {'username': 'test1', 'password': 'test'})
         response = self.client.get('/profile/1/avatar/')
         self.assertEqual(response.status_code, 200)
+
+    def test_post_not_login(self):
+        user = User.objects.get(username='test1')
+        self.assertEqual(user.member.avatar, 'defaultavatar.jpg')
+        with open('./tests/qa/testingavatar.jpg', 'r') as f:
+            data = {
+                'avatar': f,
+            }
+            response = self.client.post('/profile/avatar/', data)
+            self.assertEqual(response.status_code, 302)
+            user = User.objects.get(username='test1')
+            self.assertEqual(user.member.avatar, 'defaultavatar.jpg')
+        user = User.objects.get(username='test2')
+        self.assertEqual(user.member.avatar, 'defaultavatar.jpg')
+        with open('./tests/qa/testingavatar.jpg', 'r') as f:
+            data = {
+                'avatar': f,
+            }
+            response = self.client.post('/profile/2/avatar/', data)
+            self.assertEqual(response.status_code, 302)
+            user = User.objects.get(username='test1')
+            self.assertEqual(user.member.avatar, 'defaultavatar.jpg')
+
+    def test_post_not_exist_id(self):
+        self.client.post('/signin/', {'username': 'test1', 'password': 'test'})
+        with open('./tests/qa/testingavatar.jpg', 'r') as f:
+            data = {
+                'avatar': f,
+            }
+            response = self.client.post('/profile/33/avatar/', data)
+            self.assertEqual(response.status_code, 404)
+
+    def test_post_not_auth_id(self):
+        self.client.post('/signin/', {'username': 'test2', 'password': 'test'})
+        with open('./tests/qa/testingavatar.jpg', 'r') as f:
+            data = {
+                'avatar': f,
+            }
+            response = self.client.post('/profile/1/avatar/', data)
+            self.assertEqual(response.status_code, 403)
+
+    def test_post(self):
+        self.client.post('/signin/', {'username': 'test1', 'password': 'test'})
+        user = User.objects.get(username='test1')
+        self.assertEqual(user.member.avatar, 'defaultavatar.jpg')
+        with open('./tests/qa/testingavatar.jpg', 'r') as f:
+            data = {
+                'avatar': f,
+            }
+            response = self.client.post('/profile/avatar/', data)
+            self.assertEqual(response.status_code, 302)
+            user = User.objects.get(username='test1')
+            self.assertNotEqual(user.member.avatar, 'defaultavatar.jpg')
+        result = delete_uploaded_files(str(user.member.avatar), 'avatar')
+        self.assertTrue(result)
+
+    def test_post_id(self):
+        self.client.post('/signin/', {'username': 'test2', 'password': 'test'})
+        user = User.objects.get(username='test2')
+        self.assertEqual(user.member.avatar, 'defaultavatar.jpg')
+        with open('./tests/qa/testingavatar.jpg', 'r') as f:
+            data = {
+                'avatar': f,
+            }
+            response = self.client.post('/profile/2/avatar/', data)
+            self.assertEqual(response.status_code, 302)
+            user = User.objects.get(username='test2')
+            self.assertNotEqual(user.member.avatar, 'defaultavatar.jpg')
+        result = delete_uploaded_files(str(user.member.avatar), 'avatar')
+        self.assertTrue(result)
+
+
+def delete_uploaded_files(file_name, upload_type):
+    import os
+    base_dir = './static/uploads/'
+    avatar_dir = base_dir + 'avatars/'
+
+    if upload_type == 'avatar':
+        if file_name == 'defaultavatar.jpg':
+            return False
+        if os.path.exists(avatar_dir + file_name):
+            try:
+                os.remove(avatar_dir + file_name)
+                os.remove(avatar_dir + 'large/' + file_name)
+                os.remove(avatar_dir + 'medium/' + file_name)
+                os.remove(avatar_dir + 'small/' + file_name)
+                return True
+            except OSError:
+                return False
+    return False
