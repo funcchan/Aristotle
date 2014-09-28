@@ -2,7 +2,7 @@
 #
 # @name:  question.py
 # @create: 24 September 2014 (Wednesday)
-# @update: 24 September 2014 (Wednesday)
+# @update: 27 September 2014 (Wednesday)
 # @author: Z. Huang, Liangju
 import logging
 from django.http import Http404, HttpResponse
@@ -251,9 +251,11 @@ class QuestionActionView(View):
         except TypeError:
             logger.error('question does not exist')
             raise Http404()
+        question_queryset = Question.objects.filter(id=qid)
+        if not question_queryset:
+            logger.error('question does not exist')
+            raise Http404()
         try:
-            question_queryset = Question.objects.filter(id=qid)
-
             if action == 'answer':
                 return self._answer(request, question_queryset, refer_url)
             elif action == 'edit':
