@@ -2,7 +2,7 @@
 #
 # @name:  question.py
 # @create: 24 September 2014 (Wednesday)
-# @update: 27 September 2014 (Wednesday)
+# @update: 28 September 2014 (Wednesday)
 # @author: Z. Huang, Liangju
 import logging
 from django.http import Http404, HttpResponse
@@ -432,8 +432,11 @@ class AnswerActionView(View):
         except TypeError:
             logger.error('answer does not exist')
             raise Http404()
+        answer_queryset = Answer.objects.filter(id=aid)
+        if not answer_queryset:
+            logger.error('answer does not exist')
+            raise Http404()
         try:
-            answer_queryset = Answer.objects.filter(id=aid)
             if action == 'edit':
                 return self._edit(request, answer_queryset, refer_url)
             elif action == 'append':
@@ -479,6 +482,8 @@ class AnswerActionView(View):
         if request.user != question.author:
             logger.error('not authorized')
             return HttpResponse(status=403)
+        if question.author == answer.author:
+            return redirect(redirect_uri)
         # user cannot revoke or change this action
         # it is not a flexiable design
         # question.solved might need a one-to-one relationship
