@@ -2,7 +2,7 @@
 #
 # @name: list.py
 # @create: 24 September 2014 (Wednesday)
-# @update: 24 September 2014 (Wednesday)
+# @update: 01 October 2014 (Wednesday)
 # @author: Z. Huang, Liangju
 import logging
 from django.http import Http404
@@ -37,7 +37,7 @@ class QuestionsView(View):
         page = request.GET.get('page')
         sort = request.GET.get('sort')
         per_page = request.GET.get('pagesize')
-        if not per_page:
+        if not per_page or per_page == '0' or per_page == 0:
             per_page = qa_settings.QUESTION_PAGE_SIZE
         if not sort:
             sort = 'newest'
@@ -81,7 +81,7 @@ class TaggedQuestionsView(View):
         page = request.GET.get('page')
         sort = request.GET.get('sort')
         per_page = request.GET.get('pagesize')
-        if not per_page:
+        if not per_page or per_page == '0' or per_page == 0:
             per_page = qa_settings.QUESTION_PAGE_SIZE
         if not sort:
             sort = 'newest'
@@ -126,7 +126,9 @@ class TagsView(View):
         """A list of tags
         """
         page = request.GET.get('page')
-        per_page = request.GET.get('pagesize') or qa_settings.TAG_PAGE_SIZE
+        per_page = request.GET.get('pagesize')
+        if not per_page or per_page == '0' or per_page == 0:
+            per_page = qa_settings.TAG_PAGE_SIZE
         tag_list = Tag.objects.values('name').distinct()
         paginator = Paginator(tag_list, per_page)
         try:
@@ -142,15 +144,28 @@ class UsersView(View):
 
     def get(self, request):
         # TODO: Should render the 32*32 avatar for each users
-        query = request.GET.get('query')
-        if query:
-            users = search_user(query)
-        else:
-            users = User.objects.order_by('username')
+        # query = request.GET.get('query')
+        # if query:
+        #     users = search_user(query)
+        # else:
+        #     users = User.objects.order_by('username')
+        page = request.GET.get('page')
+        per_page = request.GET.get('pagesize')
+        if not per_page or per_page == '0' or per_page == 0:
+            per_page = qa_settings.USER_PAGE_SIZE
+        # TODO sort
+        user_list = User.objects.all()
+        paginator = Paginator(user_list, per_page)
+        try:
+            users = paginator.page(page)
+        except PageNotAnInteger:
+            users = paginator.page(1)
+        except EmptyPage:
+            users = paginator.page(paginator.num_pages)
         return render(request, 'qa/users.html', {'users': users})
 
-    def post(self, request):
-        return redirect('/users/?query={0}'.format(request.POST.get('query')))
+    # def post(self, request):
+    # return redirect('/users/?query={0}'.format(request.POST.get('query')))
 
 
 class SearchView(View):
