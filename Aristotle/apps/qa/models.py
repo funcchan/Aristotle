@@ -2,7 +2,7 @@
 #
 # @name: models.py
 # @create:
-# @update: Sep. 20th, 2014
+# @update: 02 October 2014 (Thursday)
 # @author:
 from django.db import models
 from django.contrib.auth.models import User
@@ -51,7 +51,7 @@ class Member(models.Model):
         self.update()
         idx = self.avatar.path.find(AVATAR_PATH)
         prefix = self.avatar.path[0:idx]
-        filename = self.avatar.path[idx+len(AVATAR_PATH):]
+        filename = self.avatar.path[idx + len(AVATAR_PATH):]
         avatar = Image.open(self.avatar).convert('RGB')
         size_list = {
             'large': (256, 256),
@@ -96,14 +96,24 @@ class Activation(models.Model):
     is_active = models.BooleanField(default=False)
     code = models.CharField(
         unique=True, blank=True, default='', max_length=128)
-    expire_time = models.DateTimeField(default=get_utc_time(3600))
+    expire_time = models.DateTimeField()
+
+    def save(self, *args, **kwargs):
+        if not self.id:
+            self.expire_time = get_utc_time(3600)
+        return super(Activation, self).save(*args, **kwargs)
 
 
 class ResetPassword(models.Model):
     user = models.OneToOneField(User)
     code = models.CharField(
         unique=True, blank=True, default='', max_length=128)
-    expire_time = models.DateTimeField(default=get_utc_time(600))
+    expire_time = models.DateTimeField()
+
+    def save(self, *args, **kwargs):
+        if not self.id:
+            self.expire_time = get_utc_time(600)
+        return super(ResetPassword, self).save(*args, **kwargs)
 
 
 class Question(models.Model):

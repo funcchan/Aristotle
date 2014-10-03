@@ -2,12 +2,14 @@
 #
 # @name: views.py
 # @create:
-# @update: Sep. 28th, 2014
+# @update: 02 October 2014 (Thursday)
 # @author: Z. Huang
 from django.test import TestCase
 from django.test import Client
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
+from Aristotle.apps.qa.utils import create_unique_code
+from Aristotle.apps.qa.utils import get_utc_time
 
 
 class SignInTest(TestCase):
@@ -455,6 +457,51 @@ class EditAvatarView(TestCase):
             self.assertNotEqual(user.member.avatar, 'defaultavatar.jpg')
         result = delete_uploaded_files(str(user.member.avatar), 'avatar')
         self.assertTrue(result)
+
+
+class ActivateTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        data = {'username': 'test',
+                'email': 'test@gmail.com',
+                'password': 'test',
+                'repassword': 'test'}
+        self.client.post('/signup/', data)
+
+    def test_get_expired(self):
+        user = User.objects.get(id=1)
+        code = user.activation.code
+        is_active = user.activation.is_active
+        user.activation.expire_time = get_utc_time(-1)
+        user.activation.save()
+        self.assertFalse(is_active)
+        response = self.client.get('/activate/{0}/'.format(code))
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(is_active)
+
+    def test_get_not_exist(self):
+        code = create_unique_code()
+        user = User.objects.get(id=1)
+        is_active = user.activation.is_active
+        self.assertFalse(is_active)
+        response = self.client.get('/activate/{0}/'.format(code))
+        self.assertEqual(response.status_code, 302)
+        user = User.objects.get(id=1)
+        self.assertFalse(is_active)
+
+    def test_get(self):
+        user = User.objects.get(id=1)
+        code = user.activation.code
+        is_active = user.activation.is_active
+        self.assertFalse(is_active)
+        response = self.client.get('/activate/{0}/'.format(code))
+        self.assertEqual(response.status_code, 200)
+        user = User.objects.get(id=1)
+        is_active = user.activation.is_active
+        self.assertTrue(is_active)
+        response = self.client.get('/activate/{0}/'.format(code))
+        self.assertEqual(response.status_code, 302)
 
 
 def delete_uploaded_files(file_name, upload_type):

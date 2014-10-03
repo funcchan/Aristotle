@@ -2,7 +2,7 @@
 #
 # @name:  user.py
 # @create: 24 September 2014 (Wednesday)
-# @update: 24 September 2014 (Wednesday)
+# @update: 02 October 2014 (Thursday)
 # @author: Z. Huang, Liangju
 import logging
 from django.http import Http404, HttpResponse
@@ -421,7 +421,7 @@ class ActivateView(View):
                     return render(request, 'qa/activation.html',
                                   {'valid': valid})
                 else:
-                    msg = 'The activation code has expired'
+                    msg = 'The activation code is not valid or has expired'
                     raise Exception(msg)
             except Exception as e:
                 logger.error(str(e))
