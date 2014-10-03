@@ -2,12 +2,13 @@
 #
 # @name: views.py
 # @create:
-# @update: 02 October 2014 (Thursday)
+# @update: 03 October 2014 (Friday)
 # @author: Z. Huang
 from django.test import TestCase
 from django.test import Client
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
+# from django.core.exceptions import RelatedObjectDoesNotExist
 from Aristotle.apps.qa.utils import create_unique_code
 from Aristotle.apps.qa.utils import get_utc_time
 
@@ -502,6 +503,98 @@ class ActivateTest(TestCase):
         self.assertTrue(is_active)
         response = self.client.get('/activate/{0}/'.format(code))
         self.assertEqual(response.status_code, 302)
+
+
+class ResetPasswordTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        data = {'username': 'test',
+                'email': 'test@gmail.com',
+                'password': 'test',
+                'repassword': 'test'}
+        self.client.post('/signup/', data)
+
+    def test_get_expired(self):
+        data = {
+            'email': 'test@gmail.com',
+        }
+        response = self.client.post('/reset/', data)
+        self.assertEqual(response.status_code, 302)
+        user = User.objects.get(id=1)
+        code = user.resetpassword.code
+        user.resetpassword.expire_time = get_utc_time(-1)
+        user.resetpassword.save()
+        response = self.client.get('/reset/{0}/'.format(code))
+        self.assertEqual(response.status_code, 404)
+
+    def test_get_not_exist(self):
+        code = create_unique_code()
+        response = self.client.get('/reset/{0}/'.format(code))
+        self.assertEqual(response.status_code, 404)
+
+    def test_get_resetpassword(self):
+        data = {
+            'email': 'test@gmail.com',
+        }
+        response = self.client.post('/reset/', data)
+        self.assertEqual(response.status_code, 302)
+        user = User.objects.get(id=1)
+        code = user.resetpassword.code
+        response = self.client.get('/reset/{0}/'.format(code))
+        self.assertEqual(response.status_code, 200)
+
+    def test_get_reset(self):
+        response = self.client.get('/reset/')
+        self.assertEqual(response.status_code, 200)
+
+    def test_post_reset(self):
+        data = {
+            'email': 'test@gmail.com',
+        }
+        response = self.client.post('/reset/', data)
+        self.assertEqual(response.status_code, 302)
+        user = User.objects.get(id=1)
+        self.assertEqual(user.resetpassword.id, 1)
+
+    def test_post_resetpassword_expired(self):
+        data = {
+            'email': 'test@gmail.com',
+        }
+        response = self.client.post('/reset/', data)
+        self.assertEqual(response.status_code, 302)
+        user = User.objects.get(id=1)
+        code = user.resetpassword.code
+        user.resetpassword.expire_time = get_utc_time(-1)
+        user.resetpassword.save()
+        password = user.password
+        data = {
+            'password': 'test1',
+            'repassword': 'test1',
+        }
+        response = self.client.post('/reset/{0}/'.format(code), data)
+        self.assertEqual(response.status_code, 302)
+        user = User.objects.get(id=1)
+        self.assertEqual(user.password, password)
+
+    def test_post_resetpassword(self):
+        data = {
+            'email': 'test@gmail.com',
+        }
+        response = self.client.post('/reset/', data)
+        self.assertEqual(response.status_code, 302)
+        user = User.objects.get(id=1)
+        code = user.resetpassword.code
+        password = user.password
+        data = {
+            'password': 'test1',
+            'repassword': 'test1',
+        }
+        response = self.client.post('/reset/{0}/'.format(code), data)
+        self.assertEqual(response.status_code, 302)
+        user = User.objects.get(id=1)
+        self.assertNotEqual(user.password, password)
+        # A possible bug for deleting record
 
 
 def delete_uploaded_files(file_name, upload_type):

@@ -428,6 +428,7 @@ class ActivateView(View):
                 messages.error(request, str(e))
                 # TODO
                 # we need another page to show errors
+                # Maybe 404?
                 return redirect('/activate/')
         else:
             return render(request, 'qa/activation.html')
