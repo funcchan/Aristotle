@@ -2,7 +2,7 @@
 #
 # @name:  question.py
 # @create: 24 September 2014 (Wednesday)
-# @update: 28 September 2014 (Wednesday)
+# @update: 04 October 2014 (Saturday)
 # @author: Z. Huang, Liangju
 import logging
 from django.http import Http404, HttpResponse
@@ -13,6 +13,7 @@ from django.contrib import messages
 from django.views.generic import View
 from django.contrib.auth.decorators import login_required
 from django.db.models import Prefetch
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 from Aristotle.apps.qa.models import Question, Answer
 from Aristotle.apps.qa.models import QuestionComment, QuestionAppend
@@ -27,6 +28,7 @@ from Aristotle.apps.qa.forms import EditAnswerForm, CommentAnswerForm
 from Aristotle.apps.qa.forms import AppendAnswerForm
 from Aristotle.apps.qa.utils import parse_listed_strs
 from Aristotle.apps.qa.utils import form_errors_handler
+import Aristotle.apps.qa.settings as qa_settings
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +94,11 @@ class QuestionView(View):
             raise Http404()
 
         try:
+            page = request.GET.get('page')
+            # sort = request.GET.get('sort')
+            per_page = request.GET.get('pagesize')
+            if not per_page or per_page == '0' or per_page == 0:
+                per_page = qa_settings.ANSWER_PAGE_SIZE
             # store session for anonymous users
             question = question_queryset[0]
             if hasattr(request, 'session') and not request.session.session_key:
@@ -145,7 +152,6 @@ class QuestionView(View):
             answer_downvotes_queryset = AnswerVote.objects.order_by(
                 '-created_time').filter(vote_type=False)
 
-            # answer limits
             answers = Answer.objects.filter(
                 question=question)
             answers = answers.prefetch_related(
@@ -161,9 +167,18 @@ class QuestionView(View):
                 Prefetch('answerappend_set',
                          queryset=answer_appends_queryset,
                          to_attr='appends'))
-            answers = sorted(answers, key=lambda i: (
+            answer_list = sorted(answers, key=lambda i: (
                 i.accepted, i.abs_votes_count, i.created_time),
                 reverse=True)
+
+            paginator = Paginator(answer_list, per_page)
+            try:
+                answers = paginator.page(page)
+            except PageNotAnInteger:
+                answers = paginator.page(1)
+            except EmptyPage:
+                answers = paginator.page(paginator.num_pages)
+
             question_comment_form = CommentQuestionForm()
             question_append_form = AppendQuestionForm()
             answer_form = AnswerForm()

@@ -2,7 +2,7 @@
 #
 # @name:  lists.py
 # @create: 28 September 2014 (Sunday)
-# @update: 01 October 2014 (Wednesday)
+# @update: 04 October 2014 (Saturday)
 # @author: Z. Huang
 
 from django.test import TestCase
@@ -269,3 +269,23 @@ class UsersTest(TestCase):
             else:
                 size = page_size
             self.assertEqual(len(users), size)
+
+
+class SearchTest(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        user_data = {'username': 'test',
+                     'email': 'test@gmail.com',
+                     'password': 'test',
+                     'repassword': 'test'}
+        self.client.post('/signup/', user_data)
+        self.client.post('/signin/', {'username': 'test', 'password': 'test'})
+        # for i in range(QUESTION_NUM):
+        #     question_data = {
+        #         'title': 'title ' + str(i),
+        #         'content': 'content ' + str(i),
+        #         'tags': 'tag1, tag2',
+        #     }
+        #     self.client.post('/question/ask/', question_data)
+        self.client.get('/signout/')

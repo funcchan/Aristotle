@@ -187,8 +187,22 @@
             </p>
         </li>
     {% endfor %}
-
     </ul>
+    <div>
+        <span>
+            {% if answers.has_previous %}
+                <a href="?page={{ answers.previous_page_number }}">previous</a>
+            {% endif %}
+
+            <span class="current">
+                Page {{ answers.number }} of {{ answers.paginator.num_pages }}
+            </span>
+
+            {% if answers.has_next %}
+                <a href="?page={{ answers.next_page_number }}">next</a>
+            {% endif %}
+        </span>
+    </div>
     <div>
         <form role="form" method="POST" action="/question/{{ question.id }}/answer/" class="form-horizontal">
             {% csrf_token %}

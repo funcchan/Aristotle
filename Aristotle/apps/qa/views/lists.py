@@ -170,7 +170,7 @@ class SearchView(View):
         page = request.GET.get('page')
         per_page = request.GET.get('pagesize')
         if not per_page or per_page == '0' or per_page == 0:
-            per_page = qa_settings.USER_PAGE_SIZE
+            per_page = qa_settings.QUESTION_PAGE_SIZE
         if query:
             search = Search(query)
             questions_list = search.questions()
