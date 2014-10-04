@@ -2,18 +2,18 @@
 #
 # @name: list.py
 # @create: 24 September 2014 (Wednesday)
-# @update: 01 October 2014 (Wednesday)
+# @update: 04 October 2014 (Saturday)
 # @author: Z. Huang, Liangju
 import logging
-from django.http import Http404
 from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
 from django.views.generic import View
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from Aristotle.apps.qa.search import search_question, search_user
-
 from Aristotle.apps.qa.models import Question
 from Aristotle.apps.qa.models import Tag
+from Aristotle.apps.qa.forms import SearchForm
+from Aristotle.apps.qa.search import Search
+from Aristotle.apps.qa.utils import form_errors_handler
 import Aristotle.apps.qa.settings as qa_settings
 
 logger = logging.getLogger(__name__)
@@ -143,12 +143,6 @@ class TagsView(View):
 class UsersView(View):
 
     def get(self, request):
-        # TODO: Should render the 32*32 avatar for each users
-        # query = request.GET.get('query')
-        # if query:
-        #     users = search_user(query)
-        # else:
-        #     users = User.objects.order_by('username')
         page = request.GET.get('page')
         per_page = request.GET.get('pagesize')
         if not per_page or per_page == '0' or per_page == 0:
@@ -156,16 +150,15 @@ class UsersView(View):
         # TODO sort
         user_list = User.objects.all()
         paginator = Paginator(user_list, per_page)
+        avatar_path = qa_settings.AVATAR_PATH + 'small/'
         try:
             users = paginator.page(page)
         except PageNotAnInteger:
             users = paginator.page(1)
         except EmptyPage:
             users = paginator.page(paginator.num_pages)
-        return render(request, 'qa/users.html', {'users': users})
-
-    # def post(self, request):
-    # return redirect('/users/?query={0}'.format(request.POST.get('query')))
+        return render(request, 'qa/users.html',
+                      {'users': users, 'avatar_path': avatar_path})
 
 
 class SearchView(View):
@@ -173,19 +166,33 @@ class SearchView(View):
     def get(self, request, *args, **kwargs):
         """Search page
         """
-        return render(request, 'qa/search_question.html')
+        query = request.GET.get('query')
+        page = request.GET.get('page')
+        per_page = request.GET.get('pagesize')
+        if not per_page or per_page == '0' or per_page == 0:
+            per_page = qa_settings.USER_PAGE_SIZE
+        if query:
+            search = Search(query)
+            questions_list = search.questions()
+        else:
+            questions_list = []
+        # sorting
+        paginator = Paginator(questions_list, per_page)
+        try:
+            questions = paginator.page(page)
+        except PageNotAnInteger:
+            questions = paginator.page(1)
+        except EmptyPage:
+            questions = paginator.page(paginator.num_pages)
+        form = SearchForm()
+        return render(request, 'qa/search.html',
+                      {'form': form, 'questions': questions})
 
     def post(self, request, *args, **kwargs):
-        try:
-            search_query = request.POST.get('query')
-            # TODO: Split by space
-
-            if not search_query:
-                raise Http404
-
-            result = search_question(search_query)
-            return render(request, 'qa/search_question.html',
-                          {'result': result})
-        except Exception as e:
-            logger.error(str(e))
-            return redirect('/search/')
+        refer_url = '/search/'
+        form = SearchForm(request.POST)
+        if form.is_valid():
+            query = request.POST.get('query')
+            return redirect(refer_url + '?query={0}'.format(query))
+        else:
+            return form_errors_handler(request, form, refer_url)

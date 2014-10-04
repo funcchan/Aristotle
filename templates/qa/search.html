@@ -1,0 +1,56 @@
+{% extends 'qa/base.html' %}
+
+{% block title %}
+Search
+{% endblock %}
+
+{% block content %}
+{% load widget_tweaks %}
+<div>
+    <form action="/search/" method="post" class="form-inline">
+        {% csrf_token %}
+        {% for field in form %}
+            <div class="form-group">
+                {{ field|add_class:"form-control"|attr:"placeholder:Search..." }}
+            </div>
+        {% endfor %}
+        <button type="submit" class="btn btn-default">Search</button>
+        </select>
+    </form>
+</div>
+<div>
+    {% if questions %}
+    <ul>
+        {% for question in questions %}
+        <li>
+            <h3><a href="/question/{{ question.id }}" title="Go to {{ question.title }}">{{ question.title|title }}</a></h3>
+            <div>
+                {{ question.votes_count }} | {{ question.answers_count }} | {{ question.hits_count }}
+            </div>
+            <p>{{ question.content|truncatechars:50 }}</p>
+            <div>
+                <a href="/profile/{{ question.author.id }}/">{{ question.author }}</a> asked {{ question.created_time|timesince }} ago
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p>No Data!</p>
+    {% endif %}
+</div>
+<div>
+    <span>
+        {% if questions.has_previous %}
+            <a href="?page={{ questions.previous_page_number }}">previous</a>
+        {% endif %}
+
+        <span class="current">
+            Page {{ questions.number }} of {{ questions.paginator.num_pages }}
+        </span>
+
+        {% if questions.has_next %}
+            <a href="?page={{ questions.next_page_number }}">next</a>
+        {% endif %}
+    </span>
+</div>
+{% endblock %}

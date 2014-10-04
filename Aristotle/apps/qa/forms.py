@@ -2,7 +2,7 @@
 #
 # @name: forms.py
 # @create: Sep. 11th, 2014
-# @update: Sep. 12th, 2014
+# @update: 04 October 2014 (Saturday)
 # @author: Z. Huang
 
 from django import forms
@@ -130,3 +130,7 @@ class AppendAnswerForm(forms.Form):
 
 class EditAnswerForm(forms.Form):
     answer_content = forms.CharField(widget=forms.Textarea)
+
+
+class SearchForm(forms.Form):
+    query = forms.CharField()
