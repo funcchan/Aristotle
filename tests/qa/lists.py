@@ -2,7 +2,7 @@
 #
 # @name:  lists.py
 # @create: 28 September 2014 (Sunday)
-# @update: 04 October 2014 (Saturday)
+# @update: 05 October 2014 (Sunday)
 # @author: Z. Huang
 
 from django.test import TestCase
@@ -281,11 +281,50 @@ class SearchTest(TestCase):
                      'repassword': 'test'}
         self.client.post('/signup/', user_data)
         self.client.post('/signin/', {'username': 'test', 'password': 'test'})
-        # for i in range(QUESTION_NUM):
-        #     question_data = {
-        #         'title': 'title ' + str(i),
-        #         'content': 'content ' + str(i),
-        #         'tags': 'tag1, tag2',
-        #     }
-        #     self.client.post('/question/ask/', question_data)
+        for i in range(5):
+            for j in range(QUESTION_NUM):
+                question_data = {
+                    'title': 'title ' + str(i + 1),
+                    'content': 'content ' + str(i + 1),
+                    'tags': 'tag1, tag2',
+                }
+                self.client.post('/question/ask/', question_data)
         self.client.get('/signout/')
+
+    def test_get(self):
+        self.client.post('/signin/', {'username': 'test', 'password': 'test'})
+        self._test_questions()
+
+    def test_get_not_login(self):
+        self._test_questions()
+
+    def _test_questions(self):
+        response = self.client.get('/search/')
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get('/search/?query=1')
+        self.assertEqual(response.status_code, 200)
+        questions = response.context['questions']
+        self.assertEqual(len(questions), qa_settings.QUESTION_PAGE_SIZE)
+        self._test_questions_handler('1')
+        for i in range(5):
+            for j in range(0, 50, 10):
+                self._test_questions_handler(str(i + 1), j)
+
+    def _test_questions_handler(self, query, page_size=None):
+        if not page_size or page_size == 0:
+            page_size = qa_settings.QUESTION_PAGE_SIZE
+            url = '/search/?query=' + query + '&page={0}'
+        else:
+            url = '/search/?query=' + query + \
+                '&page={0}&pagesize=' + str(page_size)
+        pages = QUESTION_NUM / page_size
+        pages += 1 if QUESTION_NUM % page_size != 0 else 0
+        for i in range(1, pages + 1):
+            response = self.client.get(url.format(i))
+            self.assertEqual(response.status_code, 200)
+            questions = response.context['questions']
+            if i == pages:
+                size = QUESTION_NUM - (i - 1) * page_size
+            else:
+                size = page_size
+            self.assertEqual(len(questions), size)
