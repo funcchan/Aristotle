@@ -2,7 +2,7 @@
 #
 # @name: models.py
 # @create:
-# @update: 02 October 2014 (Thursday)
+# @update: 06 October 2014 (Monday)
 # @author:
 from django.db import models
 from django.contrib.auth.models import User
@@ -89,6 +89,26 @@ class Score(models.Model):
     # level = models.IntegerField(default=0)
     # knowledge = models.IntegerField(default=0)
     # activity = models.IntegerField(default=0)
+
+
+class MailBox(models.Model):
+    name = models.CharField(max_length=100)
+    # color = models.CharField(max_length=10)
+    limit = models.IntegerField()
+    auto_clean = models.BooleanField(default=False)
+    user = models.ForeignKey(User, blank=True, null=True)
+    created_time = models.DateTimeField(default=timezone.now())
+
+
+class Mail(models.Model):
+    subject = models.CharField(max_length=255)
+    content = models.TextField()
+    sender = models.ForeignKey(User)
+    receiver = models.ForeignKey(User)
+    box = models.ForeignKey(MailBox, blank=True, null=True)
+    has_read = models.BooleanField(default=False)
+    # reply_to
+    created_time = models.DateTimeField(default=timezone.now())
 
 
 class Activation(models.Model):

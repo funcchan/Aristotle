@@ -1,0 +1,39 @@
+{% extends "qa/base.html" %}
+
+{% block title %}
+Send a mail
+{% endblock %}
+
+
+{% block content %}
+{% load widget_tweaks %}
+<div class="row">
+    <div class="col-md-12">
+        <h2>Send a mail to</h2>
+    {% if messages %}
+        {% for message in messages %}
+            <p class="text-danger">{{ message }}</p>
+        {% endfor %}
+    {% endif %}
+        <form role="form" method="POST" action="" class="form-horizontal">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ next }}" />
+        {% for field in form %}
+            <div class="form-group">
+                <label for="{{ field.id_for_label }}" class="col-sm-2 control-label">{{ field.label }}</label>
+                <div class="col-sm-6">
+                    {{ field|add_class:"form-control" }}
+                </div>
+            </div>
+        {% endfor %}
+            <div class="form-group">
+                <div class="col-sm-offset-2 col-sm-6">
+                  <button type="submit" class="btn btn-primary">Send</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+
