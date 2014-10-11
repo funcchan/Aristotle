@@ -2,7 +2,7 @@
 #
 # @name: models.py
 # @create:
-# @update: 06 October 2014 (Monday)
+# @update: 10 October 2014 (Friday)
 # @author:
 from django.db import models
 from django.contrib.auth.models import User
@@ -103,6 +103,7 @@ class MailBox(models.Model):
 class Mail(models.Model):
     subject = models.CharField(max_length=255)
     content = models.TextField()
+    user = models.ForeignKey(User)
     sender = models.ForeignKey(User)
     receiver = models.ForeignKey(User)
     box = models.ForeignKey(MailBox, blank=True, null=True)
