@@ -2,10 +2,10 @@
 #
 # @name: urls.py
 # @create:
-# @update: Sep. 24th, 2014
+# @update: 11 October 2014 (Saturday)
 # @author: Z. Huang, Liangju
 from django.conf.urls import patterns, include, url
-from Aristotle.apps.qa.views import user, lists, question
+from Aristotle.apps.qa.views import user, lists, question, mail
 from django.contrib import admin
 
 admin.autodiscover()
@@ -40,6 +40,12 @@ urlpatterns = patterns(
         user.EditAccountView.as_view(), name='edit-account'),
     url(r'^profile/(?P<user_id>[0-9]+)/account/$',
         user.EditAccountView.as_view(), name='edit-account'),
+    url(r'^mail/$',
+        mail.MailsView.as_view(), name='send-mail'),
+    url(r'^mail/send/$',
+        mail.SendMailView.as_view(), name='send-mail'),
+    url(r'^mail/(?P<mail_id>[0-9]+)/$',
+        mail.MailView.as_view(), name='mail'),
     url(r'^question/(?P<question_id>[0-9]+)/$',
         question.QuestionView.as_view(),
         name='question-view'),

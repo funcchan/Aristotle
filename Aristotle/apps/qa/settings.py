@@ -2,7 +2,7 @@
 #
 # @name: settings.py
 # @create: Sep. 12th, 2014
-# @update: 04 October 2014 (Saturday)
+# @update: 11 October 2014 (Saturday)
 # @author: Z. Huang
 # from django.conf import settings
 
@@ -21,3 +21,4 @@ USER_PAGE_SIZE = 50
 QUESTION_PAGE_SIZE = 25
 ANSWER_PAGE_SIZE = 25
 COMMENT_PAGE_SIZE = 5
+MAIL_PAGE_SIZE = 10
