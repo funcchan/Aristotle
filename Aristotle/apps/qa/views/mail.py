@@ -27,12 +27,16 @@ class MailsView(View):
     @method_decorator(login_required)
     def get(self, request, *args, **kwargs):
         user = request.user
+        if 'box' in kwargs:
+            box = kwargs['box']
+        else:
+            box = 'inbox'
         page = request.GET.get('page')
         per_page = request.GET.get('pagesize')
         if not per_page or per_page == '0' or per_page == 0:
             per_page = qa_settings.MAIL_PAGE_SIZE
-        # TODO sort
-        mail_list = Mail.objects.order_by('-created_time').filter(user=user)
+        mail_list = Mail.objects.order_by(
+            '-created_time').filter(user=user, box=box)
         paginator = Paginator(mail_list, per_page)
         try:
             mails = paginator.page(page)
@@ -75,10 +79,16 @@ class MailView(View):
 class SendMailView(View):
 
     @method_decorator(login_required)
+    def get(self, request, *args, **kwargs):
+        form = MailForm()
+        return render(request, 'qa/send_mail.html', {'form': form})
+
+    @method_decorator(login_required)
     def post(self, request, *args, **kwargs):
+        # action = kwargs['action']
         subject = request.POST.get('subject')
         content = request.POST.get('content')
-        receivers = request.POST.get('receiver')
+        receivers = request.POST.get('receivers')
         sender = request.user
         user = sender
         refer_url = request.META.get('HTTP_REFERER') or '/'
@@ -91,12 +101,12 @@ class SendMailView(View):
                     receiver = User.objects.get(username=username)
                     send_mail = Mail.objects.create(
                         subject=subject, content=content,
-                        user=user, has_read=True,
+                        user=user, has_read=True, box='outbox',
                         sender=sender, receiver=receiver)
                     send_mail.save()
                     receive_mail = Mail.objects.create(
                         subject=subject, content=content,
-                        user=receiver,
+                        user=receiver, box='inbox',
                         sender=sender, receiver=receiver)
                     receive_mail.save()
                 # redirect to?

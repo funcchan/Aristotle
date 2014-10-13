@@ -1,0 +1,8 @@
+{% extends "qa/base.html" %}
+
+{% block title %}Mail{% endblock %}
+
+{% block content %}
+<h3>{{ mail.subject }}</h3>
+<p>{{ mail.content }}</p>
+{% endblock content %}

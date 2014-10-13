@@ -2,7 +2,7 @@
 #
 # @name: forms.py
 # @create: Sep. 11th, 2014
-# @update: 11 October 2014 (Saturday)
+# @update: 12 October 2014 (Sunday)
 # @author: Z. Huang
 
 from django import forms
@@ -137,6 +137,6 @@ class SearchForm(forms.Form):
 
 
 class MailForm(forms.Form):
+    receivers = forms.CharField(label='Receivers')
     subject = forms.CharField(label='Subject', max_length=255)
     content = forms.CharField(label='Content', widget=forms.Textarea)
-    receivers = forms.CharField(label='Receivers')

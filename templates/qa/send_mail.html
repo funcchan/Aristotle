@@ -15,7 +15,7 @@ Send a mail
             <p class="text-danger">{{ message }}</p>
         {% endfor %}
     {% endif %}
-        <form role="form" method="POST" action="" class="form-horizontal">
+        <form role="form" method="POST" action="/mail/new/" class="form-horizontal">
             {% csrf_token %}
             <input type="hidden" name="next" value="{{ next }}" />
         {% for field in form %}

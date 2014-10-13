@@ -3,11 +3,11 @@
 {% block title %}Mails{% endblock %}
 
 {% block content %}
+<a href="/mail/new/">Write</a>
 <ul>
 {% for mail in mails %}
     <li>
-        <h3><a href="" title="">{{ mail.subject }}</a></h3>
-        <p>{{ mail.content }}</p>
+        <h3><a href="{{ mail.id }}" title="">{{ mail.subject }}</a></h3>
     </li>
 {% endfor %}
 </ul>
